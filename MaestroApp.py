@@ -295,7 +295,7 @@ class MaestroUi(Ui_MainWindow):
                          self._graphvizSvgFile], stderr = None, shell=False)
             subprocess.check_call([dotLoc,'-Tsvg', self._graphvizTxtFile, '-o',
                          self._graphvizSvgFile],stderr = None, shell=False)
-            #TODO Proper user friendly error handling
+            #TODO Proper user friendly error handling DELETE
         except (subprocess.CalledProcessError) as e:
             print ("CalledProcessError error Handling.......")
             print("Returncode {0} command {1} output {2}".format(e.returncode, e.cmd, e.output))
