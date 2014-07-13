@@ -8,6 +8,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWebKitWidgets
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -51,4 +52,4 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Display Graph"))
         self.label.setText(_translate("Dialog", "Set Zoom"))
 
-from PyQt5 import QtWebKitWidgets
+

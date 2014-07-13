@@ -306,7 +306,7 @@ class MaestroUi(Ui_MainWindow):
             print ("ValueError error Handling.......")
         #File to be read for display has been placed above in current working directory
         #Must pass fully qualified filename of graphviz svg file
-        SVGDisplay(self,self._graphvizSvgFile)
+        SVGDisplay(self,self._graphvizSvgFile,self._s)
 
     def findText(self):
         """
