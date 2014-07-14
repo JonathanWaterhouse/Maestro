@@ -1,3 +1,5 @@
+from PyQt5.QtGui import QCursor
+
 __author__ = 'user'
 from PyQt5 import QtCore, QtWidgets
 from SVGView import Ui_Dialog
@@ -29,7 +31,7 @@ class SVGDisplay(Ui_Dialog):
         self.webView.setZoomFactor(self.horizontalSlider.sliderPosition()/100)
 
     def showDetails(self):
-        msg = QMessageBox()
+        #msg = QMessageBox()
         try: name = self._sched.getSchedName(self.webView.selectedText())
         except KeyError: return
         #msg.setText(name)
@@ -37,9 +39,10 @@ class SVGDisplay(Ui_Dialog):
         #msg.setStandardButtons(QMessageBox.Close)
         #msg.setDefaultButton(QMessageBox.Close)
         #rc = msg.exec()
-        label = QLabel("<font color=grey size=15><p>" + name + "</p></font>")
+        label = QLabel('<font style="color: grey; background-color: yellow"><p>' + name + '</p></font>')
+        label.move(QCursor.pos().x()+30,QCursor.pos().y()+20)
         label.setWindowFlags(QtCore.Qt.SplashScreen)
         label.show()
-        QTimer.singleShot(5000,label.destroy)
+        QTimer.singleShot(10000,label.destroy)
         #label.exec()
 
