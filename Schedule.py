@@ -70,7 +70,7 @@ class Schedule():
                 f = line[line.find(" ")+1:len(line)].replace("\n","")
                 opens.append(f)
             if line.startswith("#*"):
-                if line[0: 2] == "#*": comments.add(line)
+                if line[0: 2] == "#*": comments.append(line)
             #
             #Processing of jobs information
             #
