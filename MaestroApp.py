@@ -302,6 +302,11 @@ class MaestroUi(Ui_MainWindow):
         except OSError as e:
             print ("OSError error Handling.......")
             print("Returncode = {0} meaning '{1}' file = {2}".format(e.errno, e.strerror, e.filename))
+            msg = QMessageBox()
+            msg.setText("Error")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setInformativeText("Please check dot file location is correctly specified. New map cannot be drawn.")
+            msg.exec()
         except ValueError as e:
             print ("ValueError error Handling.......")
         #File to be read for display has been placed above in current working directory
