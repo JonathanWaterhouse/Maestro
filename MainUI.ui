@@ -16,6 +16,10 @@
   <property name="windowTitle">
    <string>Schedule</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>Monitor_Screen_32xSM.png</normaloff>Monitor_Screen_32xSM.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>

@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Display Graph</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>Monitor_Screen_32xSM.png</normaloff>Monitor_Screen_32xSM.png</iconset>
+  </property>
   <property name="sizeGripEnabled">
    <bool>true</bool>
   </property>

@@ -2,18 +2,19 @@
 
 # Form implementation generated from reading ui file 'SVGView.ui'
 #
-# Created: Sun Jan 26 17:46:51 2014
-#      by: PyQt5 UI code generator 5.2
+# Created by: PyQt5 UI code generator 5.4.1
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5 import QtWebKitWidgets
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(1616, 839)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("Monitor_Screen_32xSM.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        Dialog.setWindowIcon(icon)
         Dialog.setSizeGripEnabled(True)
         self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -52,4 +53,4 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Display Graph"))
         self.label.setText(_translate("Dialog", "Set Zoom"))
 
-
+from PyQt5 import QtWebKitWidgets

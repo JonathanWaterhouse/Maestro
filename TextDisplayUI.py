@@ -2,8 +2,7 @@
 
 # Form implementation generated from reading ui file 'TextDisplayUI.ui'
 #
-# Created: Sun Jan 26 19:11:55 2014
-#      by: PyQt5 UI code generator 5.2
+# Created by: PyQt5 UI code generator 5.4.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -13,6 +12,9 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(475, 369)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("Monitor_Screen_32xSM.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        Dialog.setWindowIcon(icon)
         self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
