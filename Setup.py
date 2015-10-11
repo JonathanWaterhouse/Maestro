@@ -12,8 +12,8 @@ if sys.platform == "win32":
     base = "Win32GUI"
     
 setup(name='Maestro',
-      version='1.0',
-      description='Maestro Reader',
+      version='1.1',
+      description='Maestro Schedule Mapper',
 	  options = {"build_exe": build_exe_options},
       executables = [Executable("MaestroApp.py", base=base)]
       )

@@ -1,4 +1,5 @@
 import os
+import sqlite3
 
 __author__ = 'Jonathan Waterhouse'
 import re
@@ -14,7 +15,7 @@ class Schedule():
         "CONTROL-FILE" is an attempt to getthe control file the job depends on
         "ALL is a list of the complete job
     """
-    def __init__(self,sourceFiles):
+    def __init__(self,sourceFiles, sqlite_db):
         """
         This code embodies the rules required to parse the schedule and job files and store as an internal object
         """
@@ -69,12 +70,17 @@ class Schedule():
                 #f = line[line.find(" ")+1:line.find("\"",line.find("\"")+1)+1].replace("\n","")
                 f = line[line.find(" ")+1:len(line)].replace("\n","")
                 opens.append(f)
-            if line.startswith("#*"):
-                if line[0: 2] == "#*": comments.append(line)
+            if line.startswith("**"):
+                if line[0: 2] == "**": comments.append(line)
+            if line.startswith("#"):
+                if line[0: 1] == "#": comments.append(line)
             #
             #Processing of jobs information
             #
             if line.startswith(":"): weAreAtJobs = True
+            if weAreAtJobs and thisName == '':
+                try: thisName = comments[0] # Assign something to name if we got nothing so far
+                except (IndexError): pass
             if weAreAtJobs and (line!= "" and not line.startswith(" ") and
                     line.find("NEEDS") == -1 and line.find("OPENS") == -1 and
                     line.find("FOLLOWS") == -1 and
@@ -139,6 +145,8 @@ class Schedule():
             if line.find("SCRIPTNAME") == 1: thisScript = line[line.find("SCRIPTNAME")+10:len(line)-1]
         jobFile.close()
         self._jobs = jobs
+
+        self.setup_db(sqlite_db)
 
     def getAllSchedIds(self):
         """
@@ -305,3 +313,65 @@ class Schedule():
                 except KeyError: pass
         return result
 
+    def setup_db(self,sqlite_db):
+        """
+        Create a representation in sqlite database of the schedule store in internal storage.
+        This is primarily for offline analysis:
+        {schedId:{'NAME':string, 'NUMBER' = int, 'FOLLOWS':[String], 'NEEDS':[String],
+             'CONTAINS':[String], 'COMMENTS':[String], 'ALL':[String], OPENS:[String]}}
+             'CONTAINS' list has the jobs in the schedule
+             'ALL' list is a list of all the schedule lines
+        {JobId:{"DESCRIPTION":String, "SCRIPT":String, "CONTROL-FILE":String, "ALL":[]}}
+            "CONTROL-FILE" is an attempt to getthe control file the job depends on
+            "ALL is a list of the complete job
+        """
+        conn = sqlite3.connect(sqlite_db)
+        c = conn.cursor()
+        #Delete tables if already exist and recreate
+        c.execute('DROP TABLE IF EXISTS SCHEDULE')
+        c.execute("""CREATE TABLE SCHEDULE(SCHEDULE TEXT, NAME TEXT, PLATFORM TEXT, FREQ TEXT, ACTION TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_LINES')
+        c.execute("""CREATE TABLE SCH_LINES (SCHEDULE TEXT, JOB TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_LINKS')
+        c.execute("""CREATE TABLE SCH_LINKS (SCHEDULE TEXT, PRECEDES TEXT, FOLLOWS TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_NEEDS')
+        c.execute("""CREATE TABLE SCH_NEEDS (SCHEDULE TEXT, NEEDS TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_COMMENTS')
+        c.execute("""CREATE TABLE SCH_COMMENTS (SCHEDULE TEXT, COMMENT TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_OPENS')
+        c.execute("""CREATE TABLE SCH_OPENS (SCHEDULE TEXT, OPENS TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_ALL')
+        c.execute("""CREATE TABLE SCH_ALL (SCHEDULE TEXT, LINE TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS JOBS')
+        c.execute("""CREATE TABLE JOBS (JOB TEXT, PLATFORM TEXT, DESCRIPTION TEXT, SCRIPT TEXT, CTRL_FILE TEXT)""")
+        #Populate Tables by looping through previously stored schedules
+        sched_names, sched_jobs, sched_links, sched_needs, sched_comments, sched_opens, sched_all = [], [], [], [], [], [], []
+        for sched in self._sched.keys():
+            platform, freq, action = '', '', ''
+            for line in self._sched[sched]['ALL']:
+                sched_all.append((sched,line))
+                if line.startswith('SCHEDULE'): platform = line[line.find(' ')+1:line.find('#')]
+                if line.startswith('ON'): freq = line[3:len(line)]
+                if line.startswith('CARRYFORWARD'): action = 'CARRYFORWARD'
+            sched_names.append((sched,self._sched[sched]['NAME'], platform, freq, action))
+            for job in self._sched[sched]['CONTAINS']: sched_jobs.append((sched,job))
+            for link in self._sched[sched]['PRECEDES']: sched_links.append((sched,link))
+            for needs in self._sched[sched]['NEEDS']: sched_needs.append((sched,needs))
+            for comments in self._sched[sched]['COMMENTS']: sched_comments.append((sched,comments))
+            for opens in self._sched[sched]['OPENS']: sched_opens.append((sched,opens))
+        #Add to sql tables
+        c.executemany('INSERT INTO SCHEDULE (SCHEDULE, NAME, PLATFORM, FREQ, ACTION) VALUES (?,?,?,?, ?)', sched_names)
+        c.executemany('INSERT INTO SCH_LINES (SCHEDULE, JOB) VALUES (?,?)', sched_jobs)
+        c.executemany('INSERT INTO SCH_LINKS (SCHEDULE, PRECEDES) VALUES (?,?)', sched_links)
+        c.executemany('INSERT INTO SCH_NEEDS (SCHEDULE, NEEDS) VALUES (?,?)', sched_needs)
+        c.executemany('INSERT INTO SCH_COMMENTS (SCHEDULE, COMMENT) VALUES (?,?)', sched_comments)
+        c.executemany('INSERT INTO SCH_OPENS (SCHEDULE, OPENS) VALUES (?,?)', sched_opens)
+        c.executemany('INSERT INTO SCH_ALL (SCHEDULE, LINE) VALUES (?,?)', sched_all)
+        #Populate Tables by looping through previously stored jobs
+        jobs = []
+        for job in self._jobs.keys():
+            platform = job[0:job.find('#')]
+            jobs.append((job, platform, self._jobs[job]['DESCRIPTION'], self._jobs[job]['SCRIPT'],
+                         self._jobs[job]['CONTROL-FILE']))
+        c.executemany('INSERT INTO JOBS (JOB, PLATFORM, DESCRIPTION, SCRIPT, CTRL_FILE) VALUES (?, ?, ?, ?, ?)', jobs)
+        conn.commit()

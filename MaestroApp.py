@@ -36,6 +36,7 @@ class MaestroUi(Ui_MainWindow):
         self._iniFile = dataDir + "Maestro.ini"
         self._graphvizTxtFile = dataDir + "Graphviz.txt"
         self._graphvizSvgFile = dataDir + "Graphviz.svg"
+        self._db = dataDir + 'schedule.db'
         #Populate GUI with data
         try:
             self.getData()
@@ -103,7 +104,7 @@ class MaestroUi(Ui_MainWindow):
                     msg.exec()
                     raise(FileNotFoundError)
                 else:
-                    self._s = Schedule(self._files)#Read in schedule and job files and create schedule object.
+                    self._s = Schedule(self._files, self._db)#Read in schedule and job files and create schedule object.
 
     def otherGuiSetup(self):
         """ Do other setup things required to get the static GUI components set up, and
@@ -144,7 +145,7 @@ class MaestroUi(Ui_MainWindow):
         if j != "": self._files["JOBS"] = j
         f = open(self._iniFile,'wb')
         pickle.dump(self._files,f)
-        self._s = Schedule(self._files)#Read in schedule and job files and create schedule object.
+        self._s = Schedule(self._files, self._db)#Read in schedule and job files and create schedule object.
         self.popSchedsCombo()
         self.comboBoxSched.activateWindow()
 
