@@ -329,7 +329,9 @@ class Schedule():
         c = conn.cursor()
         #Delete tables if already exist and recreate
         c.execute('DROP TABLE IF EXISTS SCHEDULE')
-        c.execute("""CREATE TABLE SCHEDULE(SCHEDULE TEXT, NAME TEXT, PLATFORM TEXT, FREQ TEXT, ACTION TEXT)""")
+        c.execute("""CREATE TABLE SCHEDULE(SCHEDULE TEXT, NAME TEXT, PLATFORM TEXT, ACTION TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS SCH_FREQ')
+        c.execute("""CREATE TABLE SCH_FREQ (SCHEDULE TEXT, FREQ TEXT)""")
         c.execute ('DROP TABLE IF EXISTS SCH_LINES')
         c.execute("""CREATE TABLE SCH_LINES (SCHEDULE TEXT, JOB TEXT)""")
         c.execute ('DROP TABLE IF EXISTS SCH_LINKS')
@@ -345,22 +347,26 @@ class Schedule():
         c.execute ('DROP TABLE IF EXISTS JOBS')
         c.execute("""CREATE TABLE JOBS (JOB TEXT, PLATFORM TEXT, DESCRIPTION TEXT, SCRIPT TEXT, CTRL_FILE TEXT)""")
         #Populate Tables by looping through previously stored schedules
-        sched_names, sched_jobs, sched_links, sched_needs, sched_comments, sched_opens, sched_all = [], [], [], [], [], [], []
+        sched_names, sched_jobs, sched_links, sched_needs, sched_comments, \
+        sched_opens, sched_all, sched_freq = [], [], [], [], [], [], [], []
         for sched in self._sched.keys():
-            platform, freq, action = '', '', ''
+            platform,  action = '', ''
+            freq = []
             for line in self._sched[sched]['ALL']:
                 sched_all.append((sched,line))
                 if line.startswith('SCHEDULE'): platform = line[line.find(' ')+1:line.find('#')]
-                if line.startswith('ON'): freq = line[3:len(line)]
+                if line.startswith('ON'): freq.append(line[3:len(line)])
                 if line.startswith('CARRYFORWARD'): action = 'CARRYFORWARD'
-            sched_names.append((sched,self._sched[sched]['NAME'], platform, freq, action))
+            sched_names.append((sched,self._sched[sched]['NAME'], platform, action))
+            for fr in freq: sched_freq.append((sched,fr))
             for job in self._sched[sched]['CONTAINS']: sched_jobs.append((sched,job))
             for link in self._sched[sched]['PRECEDES']: sched_links.append((sched,link))
             for needs in self._sched[sched]['NEEDS']: sched_needs.append((sched,needs))
             for comments in self._sched[sched]['COMMENTS']: sched_comments.append((sched,comments))
             for opens in self._sched[sched]['OPENS']: sched_opens.append((sched,opens))
         #Add to sql tables
-        c.executemany('INSERT INTO SCHEDULE (SCHEDULE, NAME, PLATFORM, FREQ, ACTION) VALUES (?,?,?,?, ?)', sched_names)
+        c.executemany('INSERT INTO SCHEDULE (SCHEDULE, NAME, PLATFORM, ACTION) VALUES (?,?,?,?)', sched_names)
+        c.executemany('INSERT INTO SCH_FREQ (SCHEDULE, FREQ) VALUES (?,?)', sched_freq)
         c.executemany('INSERT INTO SCH_LINES (SCHEDULE, JOB) VALUES (?,?)', sched_jobs)
         c.executemany('INSERT INTO SCH_LINKS (SCHEDULE, PRECEDES) VALUES (?,?)', sched_links)
         c.executemany('INSERT INTO SCH_NEEDS (SCHEDULE, NEEDS) VALUES (?,?)', sched_needs)
