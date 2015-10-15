@@ -335,7 +335,7 @@ class Schedule():
         c.execute ('DROP TABLE IF EXISTS SCH_LINES')
         c.execute("""CREATE TABLE SCH_LINES (SCHEDULE TEXT, JOB TEXT)""")
         c.execute ('DROP TABLE IF EXISTS SCH_LINKS')
-        c.execute("""CREATE TABLE SCH_LINKS (SCHEDULE TEXT, PRECEDES TEXT, FOLLOWS TEXT)""")
+        c.execute("""CREATE TABLE SCH_LINKS (SCHEDULE TEXT, PRECEDES TEXT)""")
         c.execute ('DROP TABLE IF EXISTS SCH_NEEDS')
         c.execute("""CREATE TABLE SCH_NEEDS (SCHEDULE TEXT, NEEDS TEXT)""")
         c.execute ('DROP TABLE IF EXISTS SCH_COMMENTS')
@@ -347,8 +347,9 @@ class Schedule():
         c.execute ('DROP TABLE IF EXISTS JOBS')
         c.execute("""CREATE TABLE JOBS (JOB TEXT, PLATFORM TEXT, DESCRIPTION TEXT, SCRIPT TEXT, CTRL_FILE TEXT)""")
         #Populate Tables by looping through previously stored schedules
-        sched_names, sched_jobs, sched_links, sched_needs, sched_comments, \
-        sched_opens, sched_all, sched_freq = [], [], [], [], [], [], [], []
+        sched_names, sched_jobs, sched_needs, sched_comments, \
+        sched_opens, sched_all, sched_freq = [], [], [], [], [], [], []
+        sched_links = set() # use set to remove duplicate links
         for sched in self._sched.keys():
             platform,  action = '', ''
             freq = []
@@ -360,7 +361,8 @@ class Schedule():
             sched_names.append((sched,self._sched[sched]['NAME'], platform, action))
             for fr in freq: sched_freq.append((sched,fr))
             for job in self._sched[sched]['CONTAINS']: sched_jobs.append((sched,job))
-            for link in self._sched[sched]['PRECEDES']: sched_links.append((sched,link))
+            for link in self._sched[sched]['PRECEDES']: sched_links.add((sched,link))
+            for link in self._sched[sched]['FOLLOWS']: sched_links.add((link,sched))
             for needs in self._sched[sched]['NEEDS']: sched_needs.append((sched,needs))
             for comments in self._sched[sched]['COMMENTS']: sched_comments.append((sched,comments))
             for opens in self._sched[sched]['OPENS']: sched_opens.append((sched,opens))

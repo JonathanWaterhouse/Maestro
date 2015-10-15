@@ -3,7 +3,7 @@ import sys
 from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
-build_exe_options = {"packages": ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]}
+#build_exe_options = {"packages": ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]}
 packages = ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]
 include_files = ['Monitor_Screen_32xSM.png']
 
@@ -14,7 +14,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
     
 setup(name='Maestro',
-      version='1.11',
+      version='1.12',
       description='Maestro Schedule Mapper',
 	  options = {"build_exe": { 'packages' : packages, 'include_files': include_files}},
       executables = [Executable("MaestroApp.py", base=base)]
