@@ -155,6 +155,7 @@ class Schedule():
             if line.startswith('$CALENDAR'): continue
             if line.startswith('  "'):
                 self._calendar_text[calendar_name] = line[line.find('"')+ 1 : line.rfind('"')].replace('\\"','',-1).strip()
+                continue
             if not line.startswith(' ') and not line.startswith('\n'):
                 calendar_name = line[0:line.find(' ')]
                 cal_dates = []
