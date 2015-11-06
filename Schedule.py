@@ -146,6 +146,31 @@ class Schedule():
         jobFile.close()
         self._jobs = jobs
 
+        ###-----> job file processing completed process Calendar file
+        cal_file = open(sourceFiles['CALENDARS'],'r')
+        calendar = {}
+        self._calendar_text = {}
+        cal_dates = []
+        for line in cal_file:
+            if line.startswith('$CALENDAR'): continue
+            if line.startswith('  "'):
+                self._calendar_text[calendar_name] = line[line.find('"')+ 1 : line.rfind('"')].replace('\\"','',-1).strip()
+            if not line.startswith(' ') and not line.startswith('\n'):
+                calendar_name = line[0:line.find(' ')]
+                cal_dates = []
+            if line.startswith(' ') and line != '':
+                cal_dates.append(line.rstrip('\n').strip())
+            if line == '\n': # End calendar
+                calendar[calendar_name] = cal_dates
+
+
+        cal_file.close()
+        #calendar[k] is a list l=each element contains 'mm/dd/yy mm/dd/yy ...'
+        self._cal = {}
+        for k in calendar.keys():
+            #calendar[k] is a list l=each elemsnt contains 'mm/dd/yy mm/dd/yy ...'
+            self._cal[k] = ' '.join(calendar[k]).split(' ')
+            
         self.setup_db(sqlite_db)
 
     def getAllSchedIds(self):
@@ -313,6 +338,7 @@ class Schedule():
                 except KeyError: pass
         return result
 
+
     def setup_db(self,sqlite_db):
         """
         Create a representation in sqlite database of the schedule store in internal storage.
@@ -346,6 +372,11 @@ class Schedule():
         c.execute("""CREATE TABLE SCH_ALL (SCHEDULE TEXT, LINE TEXT)""")
         c.execute ('DROP TABLE IF EXISTS JOBS')
         c.execute("""CREATE TABLE JOBS (JOB TEXT, PLATFORM TEXT, DESCRIPTION TEXT, SCRIPT TEXT, CTRL_FILE TEXT)""")
+        c.execute('DROP TABLE IF EXISTS CALENDAR_NAMES')
+        c.execute("""CREATE TABLE CALENDAR_NAMES (CALENDAR TEXT, NAME TEXT)""")
+        c.execute('DROP TABLE IF EXISTS CALENDARS')
+        c.execute("""CREATE TABLE CALENDARS (CALENDAR TEXT, DATE TEXT)""")
+
         #Populate Tables by looping through previously stored schedules
         sched_names, sched_jobs, sched_needs, sched_comments, \
         sched_opens, sched_all, sched_freq = [], [], [], [], [], [], []
@@ -375,6 +406,7 @@ class Schedule():
         c.executemany('INSERT INTO SCH_COMMENTS (SCHEDULE, COMMENT) VALUES (?,?)', sched_comments)
         c.executemany('INSERT INTO SCH_OPENS (SCHEDULE, OPENS) VALUES (?,?)', sched_opens)
         c.executemany('INSERT INTO SCH_ALL (SCHEDULE, LINE) VALUES (?,?)', sched_all)
+
         #Populate Tables by looping through previously stored jobs
         jobs = []
         for job in self._jobs.keys():
@@ -382,4 +414,14 @@ class Schedule():
             jobs.append((job, platform, self._jobs[job]['DESCRIPTION'], self._jobs[job]['SCRIPT'],
                          self._jobs[job]['CONTROL-FILE']))
         c.executemany('INSERT INTO JOBS (JOB, PLATFORM, DESCRIPTION, SCRIPT, CTRL_FILE) VALUES (?, ?, ?, ?, ?)', jobs)
+
+        #Populate Tables by looping through previously stored calendars
+        cal_entries = []
+        for k in self._cal.keys():
+            for v in self._cal[k]: cal_entries.append((k,v))
+        c.executemany('INSERT INTO CALENDARS (CALENDAR, DATE) VALUES (?, ?)', cal_entries)
+        cal_names = []
+        for k in self._calendar_text.keys(): cal_names.append((k,self._calendar_text[k]))
+        c.executemany('INSERT INTO CALENDAR_NAMES (CALENDAR, NAME) VALUES (?, ?)', cal_names)
+
         conn.commit()

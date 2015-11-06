@@ -93,14 +93,16 @@ class MaestroUi(Ui_MainWindow):
                 try:
                     s = self._files["SCHEDULE"]
                     j = self._files["JOBS"]
+                    c = self._files["CALENDARS"]
                 except (KeyError):
-                    self._files["SCHEDULE"], self._files["JOBS"] = "",""
-                if not os.path.exists(self._files["SCHEDULE"]) or not os.path.exists(self._files["JOBS"]):
+                    self._files["SCHEDULE"], self._files["JOBS"], self._files["CALENDARS"] = "","", ""
+                if not os.path.exists(self._files["SCHEDULE"]) or not os.path.exists(self._files["JOBS"]) or not \
+                        os.path.exists(self._files["CALENDARS"]):
                     self._inputFilesExist = False
                     msg = QMessageBox()
                     msg.setText("Error")
                     msg.setIcon(QMessageBox.Critical)
-                    msg.setInformativeText("Schedule and Job files specified do not exist.")
+                    msg.setInformativeText("Schedule, Job and Calendar files specified do not exist.")
                     msg.exec()
                     raise(FileNotFoundError)
                 else:
@@ -139,10 +141,12 @@ class MaestroUi(Ui_MainWindow):
         w = QWidget()
         s = QFileDialog.getOpenFileName(w,"Select SCHEDULE file")[0]
         j = QFileDialog.getOpenFileName(w,"Select JOB file")[0]
+        c = QFileDialog.getOpenFileName(w,"Select CALENDAR file")[0]
         try: self._files["SCHEDULE"]
         except AttributeError: self._files = {} # We did not initialise this dictionary before
         if s != "": self._files["SCHEDULE"] = s #Test for cancelled selection and retain current value
         if j != "": self._files["JOBS"] = j
+        if c != "": self._files["CALENDARS"] = c
         f = open(self._iniFile,'wb')
         pickle.dump(self._files,f)
         self._s = Schedule(self._files, self._db)#Read in schedule and job files and create schedule object.
