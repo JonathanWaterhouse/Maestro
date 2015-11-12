@@ -118,6 +118,7 @@ class MaestroUi(Ui_MainWindow):
         self.exportFullConnectionAction.triggered.connect(self.exportFullConnections) #File menu option to export current schedule full connection Map
         self.actionSetDotLoc.triggered.connect(self.setDotLoc) #File menu option to export current schedule
         self.actionShowFullSchedule.triggered.connect(self.showFullSchedule) #File menu option to export current schedule
+        self.actionShowCalendars.triggered.connect(self.showFullCalendar)#File menu option to display all calendars
         self.actionFile_Locations.triggered.connect(self.fileInfo) #Options menu, display file names selected
         #Connect combo box selection to table population
         self.comboBoxSched.activated.connect(self.tablePopulate)
@@ -237,10 +238,17 @@ class MaestroUi(Ui_MainWindow):
 
     def showFullSchedule(self,qComboBox):
         """
-        Method to pop up a dialog and display a list of text
+        Method to pop up a dialog and display a list of full text of schedule
         """
         text = self._s.getFullSchedule(self.comboBoxSched.currentText())
         tDisplay = TextDisplay(self,text)
+
+    def showFullCalendar(self):
+        """
+        Method to pop up a dialog and display a list of all calendars
+        """
+        text = self._s.get_calendars(self._db)
+        cDisplay = TextDisplay(self,text)
 
     def tableClicked(self, tView):
         """

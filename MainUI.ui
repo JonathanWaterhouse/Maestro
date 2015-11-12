@@ -231,6 +231,7 @@
      <string>File</string>
     </property>
     <addaction name="actionShowFullSchedule"/>
+    <addaction name="actionShowCalendars"/>
     <addaction name="exportAction"/>
     <addaction name="exportFullConnectionAction"/>
    </widget>
@@ -279,6 +280,11 @@
   <action name="exportFullConnectionAction">
    <property name="text">
     <string>Display Connection Map</string>
+   </property>
+  </action>
+  <action name="actionShowCalendars">
+   <property name="text">
+    <string>Show Calendars</string>
    </property>
   </action>
  </widget>

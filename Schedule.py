@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 import sqlite3
 
@@ -322,6 +323,63 @@ class Schedule():
         outList.insert(0,"digraph G {")
         outList.append("}")
         return outList
+
+    def get_calendars(self, sqlite_db):
+        """
+        Load calendars for display. Incoming data is a sequence of records from sqlite (Calendar, date) with
+        one record per date in the calendar. The returned values is a list of lines that can be displayed in a
+        text popup. Each line needs to have new line character at end so text box works properly.
+        It has records like:
+            Calendar Name
+            Calendar Text
+               Line of (dates_per_line) number of dates in the calendar
+               Next line of (dates_per_line) number of dates in the calendar
+               etc.
+
+        @param sqlite_db: Database containing schedule details
+        @return: lis of calendars and their dates split into groups of dates_per_line
+        """
+        dates_per_line = 8 # How many date entries we want in an output line
+        conn = sqlite3.connect(sqlite_db)
+        c = conn.cursor()
+        cals, cal_names = OrderedDict(), {}
+        #Get calendar data from sqlite database
+        for row in c.execute("""SELECT A.CALENDAR, A.DATE, B.NAME
+            FROM CALENDARS AS A INNER JOIN CALENDAR_NAMES AS B ON A.CALENDAR = B.CALENDAR
+            ORDER BY A.CALENDAR"""):
+            try: # row is a tuple (calendar, date)
+                days_list = cals[row[0]]
+                days_list.append(row[1])
+                cals[row[0]] = days_list
+            except (KeyError):
+                cals[row[0]] = [row[1]]
+                cal_names[row[0]] = row[2]
+        c.close()
+        cal_lines = []
+        # Format the calendar data into output lines
+        for k in cals.keys(): # k contains the calendar name in input sequence since cals is an OrderedDict
+            cal_lines.append(k + '\n') #First section line - the calendar id
+            try: cal_lines.append('    ' + cal_names[k] + '\n') #Second section line - the calendar name, if found
+            except (KeyError): pass
+            i = 0
+            cal_split_line = []
+            for v in cals[k]:
+                if i < dates_per_line: #Build up a line of dates for the calendar
+                    cal_split_line.append(v)
+                    i += 1
+                else:
+                    # We are beyond agreed length of line so format it for output and add to output records
+                    cal_lines.append('    ' + '   '.join(cal_split_line) + '\n')
+                    cal_split_line = []
+                    # Don't lose the current date which will be the first entry on the next line
+                    cal_split_line.append(v)
+                    i = 1
+            #Make sure we output the last line of the current calendar before moving to next calendar
+            if cal_split_line is not []: cal_lines.append('    ' + '   '.join(cal_split_line) + '\n')
+            cal_lines.append('\n')
+
+        return cal_lines
+
 
     def findtext(self,searchText):
         """

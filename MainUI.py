@@ -128,7 +128,10 @@ class Ui_MainWindow(object):
         self.actionShowFullSchedule.setObjectName("actionShowFullSchedule")
         self.exportFullConnectionAction = QtWidgets.QAction(MainWindow)
         self.exportFullConnectionAction.setObjectName("exportFullConnectionAction")
+        self.actionShowCalendars = QtWidgets.QAction(MainWindow)
+        self.actionShowCalendars.setObjectName("actionShowCalendars")
         self.fileMenu.addAction(self.actionShowFullSchedule)
+        self.fileMenu.addAction(self.actionShowCalendars)
         self.fileMenu.addAction(self.exportAction)
         self.fileMenu.addAction(self.exportFullConnectionAction)
         self.menuOptions.addAction(self.fileSchedule)
@@ -160,4 +163,5 @@ class Ui_MainWindow(object):
         self.actionSetDotLoc.setText(_translate("MainWindow", "Set dot.exe Location"))
         self.actionShowFullSchedule.setText(_translate("MainWindow", "Show Full Schedule"))
         self.exportFullConnectionAction.setText(_translate("MainWindow", "Display Connection Map"))
+        self.actionShowCalendars.setText(_translate("MainWindow", "Show Calendars"))
 
