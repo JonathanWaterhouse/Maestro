@@ -73,7 +73,7 @@ class MaestroUi(Ui_MainWindow):
             self._inputFilesExist = False
             msg = QMessageBox()
             msg.setText("Warning")
-            msg.setInformativeText("Runbook file locations not yet selected. Please use file menu")
+            msg.setInformativeText("Runbook file locations not yet selected. Please use Options menu")
             msg.setIcon(QMessageBox.Warning)
             msg.exec()
             raise(FileNotFoundError)

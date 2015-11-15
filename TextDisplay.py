@@ -49,6 +49,9 @@ class TextDisplay(Ui_Dialog):
         format = QTextCharFormat()
         format.setBackground(QBrush(QColor(0,255,150,180))) # (R,G,G, transparency)
         srchTxt = self.lineEdit.text().upper()
+        if srchTxt == '':
+            self.countLabel.setText('Please select some text to search for')
+            return
         # reset all previous search highlighting, move cursor to beginning of document
         if srchTxt != self._search_text:
             no_format = QTextCharFormat() # reset all formatting from any previous searches
