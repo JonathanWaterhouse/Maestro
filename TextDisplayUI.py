@@ -25,8 +25,13 @@ class Ui_Dialog(object):
         self.lineEdit = QtWidgets.QLineEdit(Dialog)
         self.lineEdit.setObjectName("lineEdit")
         self.horizontalLayout.addWidget(self.lineEdit)
+        self.findPushButton = QtWidgets.QPushButton(Dialog)
+        self.findPushButton.setMinimumSize(QtCore.QSize(75, 0))
+        self.findPushButton.setObjectName("findPushButton")
+        self.horizontalLayout.addWidget(self.findPushButton)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.plainTextEdit = QtWidgets.QPlainTextEdit(Dialog)
+        self.plainTextEdit.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.plainTextEdit.setObjectName("plainTextEdit")
         self.verticalLayout.addWidget(self.plainTextEdit)
         self.countLabel = QtWidgets.QLabel(Dialog)
@@ -41,4 +46,5 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Text Display"))
         self.label.setText(_translate("Dialog", "Search:"))
+        self.findPushButton.setText(_translate("Dialog", "Find"))
 
