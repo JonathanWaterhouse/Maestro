@@ -120,6 +120,7 @@ class MaestroUi(Ui_MainWindow):
         self.actionShowFullSchedule.triggered.connect(self.showFullSchedule) #File menu option to export current schedule
         self.actionShowCalendars.triggered.connect(self.showFullCalendar)#File menu option to display all calendars
         self.actionFile_Locations.triggered.connect(self.fileInfo) #Options menu, display file names selected
+        self.actionCtrl_File_Deps.triggered.connect(self.show_ctrl_file_deps) # File menu, display dependencies of a given control file
         #Connect combo box selection to table population
         self.comboBoxSched.activated.connect(self.tablePopulate)
         self.comboBoxSched.currentIndexChanged.connect(self.tablePopulate)
@@ -249,6 +250,26 @@ class MaestroUi(Ui_MainWindow):
         """
         text = self._s.get_calendars(self._db)
         cDisplay = TextDisplay(self,text)
+
+    def show_ctrl_file_deps(self):
+        """
+        Method to display a picture of all schedules depending on a control file.
+        """
+        ctl_file_list = self._s.getControlFiles(self._db)
+        msg = QInputDialog()
+        msg.setWindowIcon(QIcon('Monitor_Screen_32xSM.png'))
+        msg.setWindowTitle('Chooser')
+        msg.setLabelText('Choose a control file')
+        msg.setComboBoxItems(ctl_file_list)
+        #msg.setText("Show control files?")
+        #msg.setIcon(QMessageBox.Question)
+        #msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        #msg.setDefaultButton(QMessageBox.Yes)
+        msg.exec()
+        ctl_file = msg.textValue()
+        out_list = self._s.getControlFileDependentScheds(self._db, ctl_file)
+        self.draw(out_list)
+        return
 
     def tableClicked(self, tView):
         """

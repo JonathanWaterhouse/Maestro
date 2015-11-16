@@ -380,6 +380,63 @@ class Schedule():
 
         return cal_lines
 
+    def getControlFiles(self,sqlite_db):
+        """
+        Search schedules database and return a list of control files
+        @param: sqlite_db: The location of the schedule database
+        @return: List of control files
+        """
+        conn = sqlite3.connect(sqlite_db)
+        c = conn.cursor()
+        cFiles = []
+        for row in c.execute("SELECT DISTINCT SUBSTR(OPENS,INSTR(OPENS,'\"')+1,INSTR(OPENS,'.CTL')-INSTR(OPENS,'\"')+3) AS File "
+                             "FROM SCH_OPENS where opens glob ('*.CTL*') ORDER BY File"):
+
+            cFiles.append(row[0])
+        return cFiles
+
+    def getControlFileDependentScheds(self,sqlite_db, ctl_file):
+        """
+        Find all nodes dependent on control file to the starting node
+        @param: sqlite_db: The location of the schedule database
+        @param: ctl_file: the control file we are to work with
+        @return: List of dependent schedules in Graphviz format
+        """
+        conn = sqlite3.connect(sqlite_db)
+        c = conn.cursor()
+        sql = []
+        sql.append("WITH RECURSIVE ")
+        sql.append("ctrl_file_deps (deps) AS ( ")
+        sql.append("SELECT SCHEDULE FROM SCH_OPENS where opens glob ('*" + ctl_file+ "*')), ")
+        sql.append("sched_fwd (n) AS (")
+        sql.append("SELECT deps from ctrl_file_deps ")
+        sql.append("UNION ")
+        sql.append("SELECT precedes from sch_links inner join sched_fwd ")
+        sql.append("WHERE sch_links.schedule = sched_fwd.n) ")
+        sql.append("Select distinct f.n, a.precedes ")
+        sql.append("from sched_fwd As f left outer join sch_links As a on f.n = a.schedule ")
+        sql.append("ORDER BY f.n, a.precedes ")
+        out = set()
+        for row in c.execute(''.join(sql)):
+            if repr(row[1]) == 'None' : target = 'END'
+            else: target = repr(row[1]).strip("'")
+            out.add('"' + repr(row[0]).strip("'") + '" -> "' + target + '"' )
+        #This next read is to find the link between the control file and the highest level schedules
+        sql = []
+        sql.append ("SELECT SCHEDULE FROM SCH_OPENS where opens glob ('*" + ctl_file+ "*')")
+        for row in c.execute(''.join(sql)): out.add('"' + ctl_file + '" -> "' + repr(row[0]).strip("'") + '"' )
+
+        out.add('"' + ctl_file + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
+        out.add('"' + 'END' + '"' + ' [color=white, fillcolor=pink, style="rounded,filled", shape=circle]')
+        out_list = [el for el in out]
+        out_list.sort()
+        out_list.insert(0,"ranksep=0.75")
+        out_list.insert(0,"digraph G {")
+        out_list.append('}')
+
+        conn.close()
+        return out_list
+
 
     def findtext(self,searchText):
         """

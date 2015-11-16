@@ -234,6 +234,7 @@
     <addaction name="actionShowCalendars"/>
     <addaction name="exportAction"/>
     <addaction name="exportFullConnectionAction"/>
+    <addaction name="actionCtrl_File_Deps"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -259,7 +260,7 @@
   </action>
   <action name="exportAction">
    <property name="text">
-    <string>Display Dependency Map</string>
+    <string>Dependency Map</string>
    </property>
   </action>
   <action name="actionFile_Locations">
@@ -279,12 +280,17 @@
   </action>
   <action name="exportFullConnectionAction">
    <property name="text">
-    <string>Display Connection Map</string>
+    <string>Connection Map</string>
    </property>
   </action>
   <action name="actionShowCalendars">
    <property name="text">
     <string>Show Calendars</string>
+   </property>
+  </action>
+  <action name="actionCtrl_File_Deps">
+   <property name="text">
+    <string>Ctrl File Dependencies</string>
    </property>
   </action>
  </widget>
