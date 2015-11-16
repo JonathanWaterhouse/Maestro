@@ -261,11 +261,8 @@ class MaestroUi(Ui_MainWindow):
         msg.setWindowTitle('Chooser')
         msg.setLabelText('Choose a control file')
         msg.setComboBoxItems(ctl_file_list)
-        #msg.setText("Show control files?")
-        #msg.setIcon(QMessageBox.Question)
-        #msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        #msg.setDefaultButton(QMessageBox.Yes)
-        msg.exec()
+        ok = msg.exec()
+        if ok == 0: return # Cancel pressed
         ctl_file = msg.textValue()
         out_list = self._s.getControlFileDependentScheds(self._db, ctl_file)
         self.draw(out_list)
