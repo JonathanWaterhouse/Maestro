@@ -260,6 +260,9 @@ class Schedule():
                     if opnsNode[-3:].lower() == "ctl": #Just control files
                         removeDups.add("\""+ opnsNode + "\"" + " -> " + "\""+ s +"\"" + '[color=violet]')
                         removeDups.add('"' + opnsNode + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
+                for needs in self._sched[s]["NEEDS"]:
+                    removeDups.add("\""+ needs + "\"" + " -> " + "\""+ s +"\"" + '[color=limegreen]')
+                    removeDups.add('"' + needs + '"' + ' [color=white, fillcolor=limegreen, style="rounded,filled", shape=box]')
         # Final formatting steps
         outList = [s for s in removeDups]
         outList.append("\""+ startKey +"\" "+"[fillcolor=yellow, style=\"rounded,filled\", shape=box, fontsize=22]" )
@@ -316,6 +319,9 @@ class Schedule():
                     if opnsNode[-3:].lower() == "ctl": #Just control files
                         out.add('"'+ opnsNode + '"' + ' -> ' + '"' + el + '"' +'[color=violet]')
                         out.add('"' + opnsNode + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
+                for needs in self._sched[el]["NEEDS"]:
+                    out.add("\""+ needs + "\"" + " -> " + "\""+ el +"\"" + '[color=limegreen]')
+                    out.add('"' + needs + '"' + ' [color=white, fillcolor=limegreen, style="rounded,filled", shape=box]')
         outList = [el for el in out]
         outList.append("\""+ start +"\" " + '[fillcolor=yellow, style="rounded,filled", shape=box, fontsize=22]' )
         outList.sort()

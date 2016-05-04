@@ -284,7 +284,7 @@ class MaestroUi(Ui_MainWindow):
 
     def exportDirectConnections(self):
         msg = QMessageBox()
-        msg.setText("Show control files?")
+        msg.setText("Show control files and resources needed?")
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         msg.setDefaultButton(QMessageBox.Yes)
@@ -296,7 +296,7 @@ class MaestroUi(Ui_MainWindow):
 
     def exportFullConnections(self):
         msg = QMessageBox()
-        msg.setText("Show control files?")
+        msg.setText("Show control files  and resources needed?")
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         msg.setDefaultButton(QMessageBox.Yes)

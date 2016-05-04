@@ -14,7 +14,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
     
 setup(name='Maestro',
-      version='1.16',
+      version='1.17',
       description='Maestro Schedule Mapper',
 	  options = {"build_exe": { 'packages' : packages, 'include_files': include_files}},
       executables = [Executable("MaestroApp.py", base=base)]
