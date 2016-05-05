@@ -121,6 +121,7 @@ class MaestroUi(Ui_MainWindow):
         self.actionShowCalendars.triggered.connect(self.showFullCalendar)#File menu option to display all calendars
         self.actionFile_Locations.triggered.connect(self.fileInfo) #Options menu, display file names selected
         self.actionCtrl_File_Deps.triggered.connect(self.show_ctrl_file_deps) # File menu, display dependencies of a given control file
+        self.actionResource_Dependencies.triggered.connect(self.show_resource_deps) #File menu display resource succ. deps
         #Connect combo box selection to table population
         self.comboBoxSched.activated.connect(self.tablePopulate)
         self.comboBoxSched.currentIndexChanged.connect(self.tablePopulate)
@@ -265,6 +266,23 @@ class MaestroUi(Ui_MainWindow):
         if ok == 0: return # Cancel pressed
         ctl_file = msg.textValue()
         out_list = self._s.getControlFileDependentScheds(self._db, ctl_file)
+        self.draw(out_list)
+        return
+
+    def show_resource_deps(self):
+        """
+        Method to display a picture of all schedules depending on a resource.
+        """
+        resource_list = self._s.get_resources(self._db)
+        msg = QInputDialog()
+        msg.setWindowIcon(QIcon('Monitor_Screen_32xSM.png'))
+        msg.setWindowTitle('Chooser')
+        msg.setLabelText('Choose a resource file')
+        msg.setComboBoxItems(resource_list)
+        ok = msg.exec()
+        if ok == 0: return  # Cancel pressed
+        needs = msg.textValue()
+        out_list = self._s.get_resource_dependent_scheds(self._db, needs)
         self.draw(out_list)
         return
 

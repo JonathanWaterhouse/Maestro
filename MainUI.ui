@@ -235,6 +235,8 @@
     <addaction name="exportAction"/>
     <addaction name="exportFullConnectionAction"/>
     <addaction name="actionCtrl_File_Deps"/>
+    <addaction name="actionResource_Dependencies"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
@@ -291,6 +293,11 @@
   <action name="actionCtrl_File_Deps">
    <property name="text">
     <string>Ctrl File Dependencies</string>
+   </property>
+  </action>
+  <action name="actionResource_Dependencies">
+   <property name="text">
+    <string>Resource Dependencies</string>
    </property>
   </action>
  </widget>
