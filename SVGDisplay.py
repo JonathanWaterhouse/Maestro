@@ -10,12 +10,13 @@ class SVGDisplay(Ui_Dialog):
     """
     Create a small webkit based box to display schedule diagrams
     """
-    def __init__(self,parent,svgFile,fullSched):
+    def __init__(self,parent,svgFile, fullSched, sqlite_db):
         """
         Create the display box based on input parent widget and populated with
         svg file whose fully qualified path and filename must be passed
         """
         self._sched = fullSched
+        self._sqlite_db = sqlite_db
         dlg = QtWidgets.QDialog()
         self.setupUi(dlg)
         imageUrl = QtCore.QUrl.fromLocalFile(svgFile) # Fully qualified filename
@@ -32,7 +33,7 @@ class SVGDisplay(Ui_Dialog):
 
     def showDetails(self):
         #msg = QMessageBox()
-        try: name = self._sched.getSchedName(self.webView.selectedText())
+        try: name = self._sched.getSchedName(self.webView.selectedText(), self._sqlite_db)
         except KeyError: return
         #msg.setText(name)
         #msg.setIcon(QMessageBox.Information)

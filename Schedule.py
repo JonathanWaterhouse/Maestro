@@ -2,6 +2,11 @@ from collections import OrderedDict
 import os
 import sqlite3
 
+from PyQt5.QtGui import QIcon
+from typing import List, Set
+
+from PyQt5.QtWidgets import QMessageBox
+
 __author__ = 'Jonathan Waterhouse'
 import re
 class Schedule():
@@ -16,11 +21,23 @@ class Schedule():
         "CONTROL-FILE" is an attempt to getthe control file the job depends on
         "ALL is a list of the complete job
     """
-    def __init__(self,sourceFiles, sqlite_db):
+    def __init__(self,sourceFiles, maestro_db, window_icon):
         """
         This code embodies the rules required to parse the schedule and job files and store as an internal object
         """
         # initialisations required for schedule file processing
+        self._icon = window_icon
+        msg = QMessageBox()
+        msg.setWindowIcon(QIcon(self._icon))
+        msg.setWindowTitle('Maestro')
+        msg.setText("Refresh SQLite maestro database?\nHint: You only need to do it if you selected new Maestro files.")
+        msg.setIcon(QMessageBox.Question)
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setDefaultButton(QMessageBox.No)
+        rc = msg.exec()
+        #We don't want to refresh any data in internal database (presumably maestro schedule files did not change)
+        if rc == QMessageBox.No: return
+
         all, follows,needs,opens,comments,jobs = [],[],[],[],[],[]
         schedNum = 0
         thisSched, thisName = '',''
@@ -172,165 +189,260 @@ class Schedule():
         for k in calendar.keys():
             #calendar[k] is a list l=each elemsnt contains 'mm/dd/yy mm/dd/yy ...'
             self._cal[k] = ' '.join(calendar[k]).split(' ')
-            
-        self.setup_db(sqlite_db)
 
-    def getAllSchedIds(self):
+        #Do SQLite setup to represent the schedule
+        self.setup_db(maestro_db)
+
+    def getAllSchedIds(self, maestro_db : str) -> list:
         """
         Return a view of all schedule ids contained in full schedule
         """
-        return self._sched.keys()
+        l = []
+        conn = sqlite3.connect(maestro_db)
+        c = conn.cursor()
+        for row in c.execute("SELECT DISTINCT SCHEDULE FROM SCHEDULE ORDER BY SCHEDULE ASC"):
+            l.append(row[0])
+        conn.close()
+        return l
 
-    def getSchedName(self,schedNumber):
+    def getSchedName(self,schedNumber: str, maestro_db: str) -> str:
         """
         Given input of String schedNumber, output string the schedule name
         """
-        return self._sched[schedNumber]['NAME']
+        if schedNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            c.execute("SELECT DISTINCT NAME FROM SCHEDULE WHERE SCHEDULE=?",(schedNumber,))
+            name =  c.fetchone()
+            conn.close()
+            return name[0]
+        else: return ''
 
-    def getScheduleJobs(self, schedNumber):
+    def getScheduleJobs(self, schedNumber: str, maestro_db: str) -> List:
         """
         Find schedule jobs for a given input schedule. Return a list.
         @param schedNumber: input schedule number
         @return: List of schedule jobs
         """
-        return self._sched[schedNumber]['CONTAINS']
+        l = []
+        if schedNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT JOB FROM SCH_LINES WHERE SCHEDULE=?", (schedNumber,)):
+                l.append(row[0])
+            conn.close()
+            return l
+        else:
+            return ''
 
-    def getPreviousSchedules(self, schedNumber):
+    def getPreviousSchedules(self, schedNumber: str, maestro_db: str) -> List:
         """
         Find previous schedules for a given input schedule. Return a list.
         @param schedNumber: input schedule number
         @return: List of immediately previous schedules
         """
-        return self._sched[schedNumber]['FOLLOWS']
+        l = []
+        if schedNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT SCHEDULE FROM SCH_LINKS WHERE PRECEDES=? ORDER BY SCHEDULE ASC", (schedNumber,)):
+                l.append(row[0])
+            conn.close()
+            return l
+        else:
+            return ''
 
-    def getFollowingSchedules(self, schedNumber):
+    def getFollowingSchedules(self, schedNumber: str, maestro_db: str) -> List:
         """
         Find following schedules for a given input schedule. Return a list.
         @param schedNumber: input schedule number
         @return: List of immediately following schedules
         """
-        return self._sched[schedNumber]['PRECEDES']
+        l = []
+        if schedNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT PRECEDES FROM SCH_LINKS WHERE SCHEDULE=? ORDER BY PRECEDES ASC", (schedNumber,)):
+                l.append(row[0])
+            conn.close()
+            return l
+        else:
+            return ''
 
-    def getFullSchedule(self, schedNumber):
+    def getFullSchedule(self, schedNumber: str, maestro_db: str) -> List:
         """
         Find full schedule for a given input schedule. Return a list.
         @param schedNumber: input schedule number
         @return: List of all schedule lines
         """
-        return self._sched[schedNumber]['ALL']
+        l = []
+        if schedNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT LINE FROM SCH_ALL WHERE SCHEDULE=?", (schedNumber,)):
+                l.append(row[0])
+            conn.close()
+            return l
+        else:
+            return ''
 
-    def getFullJob(self, schedNumber):
+    def getFullJob(self, jobNumber: str, maestro_db: str) -> List:
         """
         Find full job for a given input job number. Return a list.
         @param schedNumber: input schedule number
         @return: List of all job lines
         """
-        return self._jobs[schedNumber]['ALL']
+        l = []
+        if jobNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT LINE FROM JOBS_ALL WHERE JOB=?", (jobNumber,)):
+                l.append(row[0])
+            conn.close()
+            return l
+        else:
+            return ''
 
-    def getJobName(self,jobNumber):
+    def getJobName(self,jobNumber: str, maestro_db: str) -> str:
         """
         Given input of String jobNumber, output string the job name
         """
-        return self._jobs[jobNumber]['DESCRIPTION']
+        if jobNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            c.execute("SELECT DISTINCT DESCRIPTION FROM JOBS WHERE JOB=?", (jobNumber,))
+            name = c.fetchone()
+            conn.close()
+            return name[0]
+        else:
+            return ''
 
-    def getJobScript(self,jobNumber):
+    def getJobScript(self,jobNumber: str, maestro_db: str) -> str:
         """
         Given input of String jobNumber, output string the job script
         """
-        return self._jobs[jobNumber]['SCRIPT']
+        if jobNumber != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            c.execute("SELECT DISTINCT SCRIPT FROM JOBS WHERE JOB=?", (jobNumber,))
+            name = c.fetchone()
+            conn.close()
+            return name[0]
+        else:
+            return ''
 
-    def getGraphvizPart(self, startKey, showFileDeps):
+    def getGraphvizPart(self, start_key: str, showFileDeps: bool, maestro_db: str) -> List:
         """
         Return List of all schedules preceding or following a given input schedule "startKey"
         in a format processsable by Graphviz dot program.
         cf http://www.graphviz.org/
         """
-        out = [];
-        schedsIncludedF, schedsIncludedP, schedsIncluded, removeDups = set(), set(), set(), set()
-        schedsIncludedP = self.recursive(startKey, "PRECEDES", out)
-        schedsIncludedF = self.recursive(startKey, "FOLLOWS", out)
-        schedsIncluded = schedsIncludedF.union(schedsIncludedP)
-        # Derive the forward and backward dependencies
-        for el in out: removeDups.add(el)
-        #Derive the dependencies from requirements for input file if user requested that
-        if showFileDeps:
-            for s in schedsIncluded:
-                for opns in self._sched[s]["OPENS"]:
-                    opnsNode = opns.replace('"','').split('/')[-1]
-                    if opnsNode[-3:].lower() == "ctl": #Just control files
-                        removeDups.add("\""+ opnsNode + "\"" + " -> " + "\""+ s +"\"" + '[color=violet]')
-                        removeDups.add('"' + opnsNode + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
-                for needs in self._sched[s]["NEEDS"]:
-                    removeDups.add("\""+ needs + "\"" + " -> " + "\""+ s +"\"" + '[color=limegreen]')
-                    removeDups.add('"' + needs + '"' + ' [color=white, fillcolor=limegreen, style="rounded,filled", shape=box]')
-        # Final formatting steps
-        outList = [s for s in removeDups]
-        outList.append("\""+ startKey +"\" "+"[fillcolor=yellow, style=\"rounded,filled\", shape=box, fontsize=22]" )
-        outList.insert(0,"digraph G {")
-        outList.append("}")
-        return outList
+        nodes_f, completed, nodes  = set(), set(), set()
+        out_set = set() #Ensure any duplicates are omitted from output
+        conn = sqlite3.connect(maestro_db)
+        c = conn.cursor()
+        #Going forward
+        nodes_f.add(start_key)
+        nodes.add(start_key) #This is for a permanent record of all nodes in map for later
+        while (len(nodes_f) != 0):
+            curr_node = nodes_f.pop()
+            if curr_node not in completed:
+                c.execute("SELECT PRECEDES FROM SCH_LINKS WHERE SCHEDULE=?", (curr_node,))
+                rows = c.fetchall()
+                for row in rows:
+                    nodes_f.add(row[0])
+                    nodes.add(row[0])
+                    out_set.add("\""+ curr_node +"\"" + " -> " + "\""+ row[0] + "\"")
+                if len(rows) == 0: out_set.add("\""+ curr_node +"\" "+"[shape=diamond, color=blue]")
+                completed.add(curr_node)
+        #Going backward
+        nodes_b, completed = set(), set() #Initialise them
+        nodes_b.add(start_key)
+        while (len(nodes_b) != 0):
+            curr_node = nodes_b.pop()
+            if curr_node not in completed:
+                for row in c.execute("SELECT SCHEDULE FROM SCH_LINKS WHERE PRECEDES=?", (curr_node,)):
+                    nodes_b.add(row[0])
+                    nodes.add(row[0])
+                    out_set.add("\"" + row[0] + "\"" + " -> " + "\"" + curr_node + "\"")
+                completed.add(curr_node)
+        #Derive NEEDS and OPENS dependencies if user requested that
+        if showFileDeps: out_set = out_set.union(self._get_ctrl_file_and_rsrce_deps(nodes, maestro_db))
 
-    def recursive(self, key, direction, outList):
-        """
-        Recursively move through all dependent schedules either forwards or backwards
-        as defined by input direction
-        String key
-        String direction (has to correspond to a key in stored self._sched (currently "FOLLOWS", "PRECEDES")
-        List outList
-        """
-        schedsIncluded = set()
-        schedsIncluded.add(key)
-        precedes = self._sched[key][direction] # retrieve dependent schedules of input schedule (key)
-        if len(precedes) !=0:
-            for f in precedes:
-                schedsIncluded.add(f)
-                fStrip = re.split("[^0-9a-zA-Z-]",f)[0]
-                if direction == "PRECEDES": outList.append("\""+ key +"\"" + " -> " + "\""+ fStrip + "\"")
-                else: outList.append("\""+ fStrip + "\"" + " -> " + "\""+ key +"\"")
-                self.recursive(f, direction, outList)
-        else:
-            if direction == "PRECEDES": outList.append("\""+ key +"\" "+"[shape=diamond, color=blue]" )
-        return schedsIncluded
+        out_list = list(out_set)
+        #Highlight start node and add graph start and end signature
+        out_list.append("\"" + start_key + "\" " + "[fillcolor=yellow, style=\"rounded,filled\", shape=box, fontsize=22]")
+        out_list.insert(0, "digraph G {")
+        out_list.append("}")
+        conn.close()
 
-    def findAllConnected(self, start, showFileDeps):
+        return out_list
+
+    def getAllConnected(self, start_key: str, showFileDeps: bool, maestro_db: str) -> List:
         """
         Find all nodes connected to the starting node
         @param start: initial schedule node
         @param showFileDeps Boolean true if we want to show control files etc.
         @return List object of lines for Graphviz dot program:
         """
-        nodes = set()
-        nodes.add(start)
-        completed = set()
+        completed, nodes = set(), set()
+        out_set = set()  # Ensure any duplicates are omitted from output
+        conn = sqlite3.connect(maestro_db)
+        c = conn.cursor()
+        nodes.add(start_key)
         while (len(nodes) != 0):
-            currNode = nodes.pop()
-            for nbr in self._sched[currNode]["FOLLOWS"]:
-                if nbr not in completed: nodes.add(nbr)
-            for nbr in self._sched[currNode]["PRECEDES"]:
-                if nbr not in completed: nodes.add(nbr)
-            completed.add(currNode)
-        out = set()
-        for el in completed:
-            for fwd in self._sched[el]["PRECEDES"]: out.add("\""+ el +"\"" + " -> " + "\""+ fwd + "\"")
-            for bwd in self._sched[el]["FOLLOWS"]: out.add("\""+ bwd + "\"" + " -> " + "\""+ el +"\"")
-            if showFileDeps:
-                for opns in self._sched[el]["OPENS"]:
-                    opnsNode = opns.replace('"','').split('/')[-1]
-                    if opnsNode[-3:].lower() == "ctl": #Just control files
-                        out.add('"'+ opnsNode + '"' + ' -> ' + '"' + el + '"' +'[color=violet]')
-                        out.add('"' + opnsNode + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
-                for needs in self._sched[el]["NEEDS"]:
-                    out.add("\""+ needs + "\"" + " -> " + "\""+ el +"\"" + '[color=limegreen]')
-                    out.add('"' + needs + '"' + ' [color=white, fillcolor=limegreen, style="rounded,filled", shape=box]')
-        outList = [el for el in out]
-        outList.append("\""+ start +"\" " + '[fillcolor=yellow, style="rounded,filled", shape=box, fontsize=22]' )
-        outList.sort()
-        outList.insert(0,"ranksep=0.75")
-        outList.insert(0,"digraph G {")
-        outList.append("}")
-        return outList
+            curr_node = nodes.pop()
+            if curr_node not in completed:
+                c.execute("SELECT PRECEDES FROM SCH_LINKS WHERE SCHEDULE=?", (curr_node,))
+                rows = c.fetchall()
+                for row in rows:
+                    nodes.add(row[0])
+                    out_set.add("\"" + curr_node + "\"" + " -> " + "\"" + row[0] + "\"")
+                if len(rows) == 0: out_set.add("\"" + curr_node + "\" " + "[shape=diamond, color=blue]")
+                for row in c.execute("SELECT SCHEDULE FROM SCH_LINKS WHERE PRECEDES=?", (curr_node,)):
+                    nodes.add(row[0])
+                    out_set.add("\"" + row[0] + "\"" + " -> " + "\"" + curr_node + "\"")
+                if len(rows) == 0: out_set.add("\"" + curr_node + "\" " + "[shape=diamond, color=blue]")
+                completed.add(curr_node) #We now finished with this node
 
-    def get_calendars(self, sqlite_db):
+        conn.close()
+        # Derive NEEDS and OPENS dependencies if user requested that
+        if showFileDeps: out_set = out_set.union(self._get_ctrl_file_and_rsrce_deps(completed, maestro_db))
+
+        out_list = list(out_set)
+        #Highlight start node and add graph start and end signature
+        out_list.append("\"" + start_key + "\" " + "[fillcolor=yellow, style=\"rounded,filled\", shape=box, fontsize=22]")
+        out_list.insert(0, "digraph G {")
+        out_list.append("}")
+        return out_list
+
+    def _get_ctrl_file_and_rsrce_deps(self, nodes: Set, maestro_db: str) -> Set:
+        """ Internal routine to find resource  and control dependencies of a set of nodes.
+        @param: nodes: Set of nodes to find dependencies of
+        @return: Set of lines in graphviz format showing dependencies
+        """
+        conn = sqlite3.connect(maestro_db)
+        c = conn.cursor()
+        out_set = set()
+        for s in nodes:
+            c.execute("SELECT OPENS FROM SCH_OPENS WHERE SCHEDULE=?", (s,))
+            rows = c.fetchall()
+            for opns in rows:
+                opnsNode = opns[0].replace('"', '').split('/')[-1]
+                if opnsNode[-3:].lower() == "ctl":  # Just control files
+                    out_set.add("\"" + opnsNode + "\"" + " -> " + "\"" + s + "\"" + '[color=violet]')
+                    out_set.add(
+                        '"' + opnsNode + '"' + ' [color=white, fillcolor=violet, style="rounded,filled", shape=box]')
+            c.execute("SELECT NEEDS FROM SCH_NEEDS WHERE SCHEDULE=?", (s,))
+            rows = c.fetchall()
+            for needs in rows:
+                out_set.add("\"" + needs[0] + "\"" + " -> " + "\"" + s + "\"" + '[color=limegreen]')
+                out_set.add(
+                    '"' + needs[0] + '"' + ' [color=white, fillcolor=limegreen, style="rounded,filled", shape=box]')
+        conn.close()
+        return out_set
+
+    def get_calendars(self, maestro_db):
         """
         Load calendars for display. Incoming data is a sequence of records from sqlite (Calendar, date) with
         one record per date in the calendar. The returned values is a list of lines that can be displayed in a
@@ -342,11 +454,11 @@ class Schedule():
                Next line of (dates_per_line) number of dates in the calendar
                etc.
 
-        @param sqlite_db: Database containing schedule details
+        @param maestro_db: Database containing schedule details
         @return: lis of calendars and their dates split into groups of dates_per_line
         """
         dates_per_line = 8 # How many date entries we want in an output line
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         cals, cal_names = OrderedDict(), {}
         #Get calendar data from sqlite database
@@ -386,13 +498,13 @@ class Schedule():
 
         return cal_lines
 
-    def getControlFiles(self,sqlite_db):
+    def getControlFiles(self,maestro_db):
         """
         Search schedules database and return a list of control files
-        @param: sqlite_db: The location of the schedule database
+        @param: maestro_db: The location of the schedule database
         @return: List of control files
         """
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         cFiles = []
         for row in c.execute("SELECT DISTINCT SUBSTR(OPENS,INSTR(OPENS,'\"')+1,INSTR(OPENS,'.CTL')-INSTR(OPENS,'\"')+3) AS File "
@@ -401,13 +513,13 @@ class Schedule():
             cFiles.append(row[0])
         return cFiles
 
-    def get_resources(self, sqlite_db):
+    def get_resources(self, maestro_db):
         """
         Search schedules database and return a list of control files
-        @param: sqlite_db: The location of the schedule database
+        @param: maestro_db: The location of the schedule database
         @return: List of control files
         """
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         needs = []
         for row in c.execute(
@@ -415,14 +527,14 @@ class Schedule():
             needs.append(row[0])
         return needs
 
-    def getControlFileDependentScheds(self,sqlite_db, ctl_file):
+    def getControlFileDependentScheds(self,maestro_db, ctl_file):
         """
         Find all nodes dependent on control file to the starting node
-        @param: sqlite_db: The location of the schedule database
+        @param: maestro_db: The location of the schedule database
         @param: ctl_file: the control file we are to work with
         @return: List of dependent schedules in Graphviz format
         """
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         sql = []
         sql.append("WITH RECURSIVE ")
@@ -457,14 +569,14 @@ class Schedule():
         conn.close()
         return out_list
 
-    def get_resource_dependent_scheds(self, sqlite_db, resource):
+    def get_resource_dependent_scheds(self, maestro_db, resource):
         """
         Find all nodes dependent on control file to the starting node
-        @param: sqlite_db: The location of the schedule database
+        @param: maestro_db: The location of the schedule database
         @param: ctl_file: the control file we are to work with
         @return: List of dependent schedules in Graphviz format
         """
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         sql = []
         sql.append("WITH RECURSIVE ")
@@ -501,24 +613,29 @@ class Schedule():
         conn.close()
         return out_list
 
-    def findtext(self,searchText):
+    def findtext(self,searchText: str, maestro_db: str) -> List:
         """
         @param searchText: input text to search
         @return: List of results lines from schedule and jobs
         """
         result = []
-        for k,v in self._sched.items():
-            for line in v["ALL"]:
-                if line.lower().find(searchText.lower())!= -1: result.append(k + " -> " + line )
-            for job in v["CONTAINS"]:
-                try:
-                    for line in self._jobs[job]["ALL"]:
-                        if line.lower().find(searchText.lower())!= -1: result.append(k + " : " + job + " -> " + line)
-                except KeyError: pass
+        if searchText != '':
+            conn = sqlite3.connect(maestro_db)
+            c = conn.cursor()
+            for row in c.execute("SELECT SCHEDULE, LINE FROM SCH_ALL WHERE LINE LIKE ?", ('%' + searchText + '%',)):
+                result.append(row[0] + " -> " + row[1])
+
+            sql = 'SELECT SL.SCHEDULE, SL.JOB, J.LINE from SCH_LINES AS SL INNER JOIN JOBS_ALL AS J ON J.JOB = SL.JOB WHERE LINE LIKE ?'
+            for row in c.execute(sql, ('%' + searchText + '%',)):
+                result.append(row[0] + " : " + row[1] + " -> " + row[2])
+            conn.close()
+            result.sort()
+        else:
+            return []
+
         return result
 
-
-    def setup_db(self,sqlite_db):
+    def setup_db(self,maestro_db: str):
         """
         Create a representation in sqlite database of the schedule store in internal storage.
         This is primarily for offline analysis:
@@ -530,7 +647,7 @@ class Schedule():
             "CONTROL-FILE" is an attempt to getthe control file the job depends on
             "ALL is a list of the complete job
         """
-        conn = sqlite3.connect(sqlite_db)
+        conn = sqlite3.connect(maestro_db)
         c = conn.cursor()
         #Delete tables if already exist and recreate
         c.execute('DROP TABLE IF EXISTS SCHEDULE')
@@ -551,6 +668,8 @@ class Schedule():
         c.execute("""CREATE TABLE SCH_ALL (SCHEDULE TEXT, LINE TEXT)""")
         c.execute ('DROP TABLE IF EXISTS JOBS')
         c.execute("""CREATE TABLE JOBS (JOB TEXT, PLATFORM TEXT, DESCRIPTION TEXT, SCRIPT TEXT, CTRL_FILE TEXT)""")
+        c.execute ('DROP TABLE IF EXISTS JOBS_ALL')
+        c.execute("""CREATE TABLE JOBS_ALL (JOB TEXT, LINE TEXT)""")
         c.execute('DROP TABLE IF EXISTS CALENDAR_NAMES')
         c.execute("""CREATE TABLE CALENDAR_NAMES (CALENDAR TEXT, NAME TEXT)""")
         c.execute('DROP TABLE IF EXISTS CALENDARS')
@@ -587,12 +706,15 @@ class Schedule():
         c.executemany('INSERT INTO SCH_ALL (SCHEDULE, LINE) VALUES (?,?)', sched_all)
 
         #Populate Tables by looping through previously stored jobs
-        jobs = []
+        jobs, job_lines = [],[]
         for job in self._jobs.keys():
             platform = job[0:job.find('#')]
             jobs.append((job, platform, self._jobs[job]['DESCRIPTION'], self._jobs[job]['SCRIPT'],
                          self._jobs[job]['CONTROL-FILE']))
+            for job_line in self._jobs[job]['ALL']:
+                job_lines.append((job, job_line))
         c.executemany('INSERT INTO JOBS (JOB, PLATFORM, DESCRIPTION, SCRIPT, CTRL_FILE) VALUES (?, ?, ?, ?, ?)', jobs)
+        c.executemany('INSERT INTO JOBS_ALL (JOB, LINE) VALUES (?, ?)', job_lines)
 
         #Populate Tables by looping through previously stored calendars
         cal_entries = []

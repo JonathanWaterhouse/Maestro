@@ -1,6 +1,8 @@
 import os
 import subprocess
 import pickle
+
+import sqlite3
 from PyQt5.QtWidgets import *
 from MainUI import Ui_MainWindow
 from Schedule import Schedule
@@ -34,13 +36,15 @@ class MaestroUi(Ui_MainWindow):
         dataDir = self.getDataDir()
         dataDir = self.getDataDir() + os.sep
         self._iniFile = dataDir + "Maestro.ini"
+        self._sqlite_ini_name = 'ini.db'
         self._graphvizTxtFile = dataDir + "Graphviz.txt"
         self._graphvizSvgFile = dataDir + "Graphviz.svg"
         self._db = dataDir + 'schedule.db'
+        self._icon = 'Monitor_Screen_32xSM.png'
         #Populate GUI with data
         try:
             self.getData()
-        except(FileNotFoundError):
+        except(KeyError):
             return
         self.popSchedsCombo()
 
@@ -63,50 +67,54 @@ class MaestroUi(Ui_MainWindow):
 
     def getData(self):
         """
-        Read the ini file containing the schedule and job file locations. From those
+        Read the ini database containing the schedule and job file locations. From those
         values try to read schedule and job files. At any failure output a message with
         corrective actions to take.
         """
-        try:
-            f = open(self._iniFile,'rb')
-        except (FileNotFoundError):
+        conn = sqlite3.connect(self._sqlite_ini_name)
+        c = conn.cursor()
+        # Settings database
+        c.execute("CREATE TABLE IF NOT EXISTS SETTINGS (KEY TEXT PRIMARY KEY, VALUE TEXT)")
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='SCHEDULE'")
+        s = c.fetchone()
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='JOBS'")
+        j = c.fetchone()
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='CALENDARS'")
+        cal = c.fetchone()
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='DOT'")
+        dot = c.fetchone()
+        conn.close()
+        db_err = False
+        if (s is None or j is None or cal is None): db_err = True
+        elif (s[0] == '' or j[0] == '' or cal[0] == ''): db_err = True
+        if db_err:
             self._inputFilesExist = False
             msg = QMessageBox()
+            msg.setWindowIcon(QIcon(self._icon))
+            msg.setWindowTitle('Maestro')
             msg.setText("Warning")
             msg.setInformativeText("Runbook file locations not yet selected. Please use Options menu")
             msg.setIcon(QMessageBox.Warning)
             msg.exec()
-            raise(FileNotFoundError)
-        else:
-            try:
-                self._files = pickle.load(f)
-            except (pickle.UnpicklingError, EOFError):
+            raise (KeyError)
+            return
+        elif not os.path.exists(s[0]) or not os.path.exists(j[0]) or not os.path.exists(cal[0]):
+            #Files specified not found
                 self._inputFilesExist = False
                 msg = QMessageBox()
+                msg.setWindowIcon(QIcon(self._icon))
+                msg.setWindowTitle('Maestro')
                 msg.setText("Error")
                 msg.setIcon(QMessageBox.Critical)
-                msg.setInformativeText("Maestro.ini file is corrupt. Close application, delete the file, "
-                                       "then reopen the application")
+                msg.setInformativeText("Schedule, Job and Calendar files specified do not exist.")
                 msg.exec()
-                raise(FileNotFoundError)
-            else:
-                try:
-                    s = self._files["SCHEDULE"]
-                    j = self._files["JOBS"]
-                    c = self._files["CALENDARS"]
-                except (KeyError):
-                    self._files["SCHEDULE"], self._files["JOBS"], self._files["CALENDARS"] = "","", ""
-                if not os.path.exists(self._files["SCHEDULE"]) or not os.path.exists(self._files["JOBS"]) or not \
-                        os.path.exists(self._files["CALENDARS"]):
-                    self._inputFilesExist = False
-                    msg = QMessageBox()
-                    msg.setText("Error")
-                    msg.setIcon(QMessageBox.Critical)
-                    msg.setInformativeText("Schedule, Job and Calendar files specified do not exist.")
-                    msg.exec()
-                    raise(FileNotFoundError)
-                else:
-                    self._s = Schedule(self._files, self._db)#Read in schedule and job files and create schedule object.
+                raise(KeyError)
+                return
+        else:
+            # Read in schedule and job files and create schedule object.
+            self._files = {'SCHEDULE': s[0], 'JOBS': j[0], 'CALENDARS': cal[0]}
+            self._files['DOT'] = dot[0]
+            self._s = Schedule(self._files, self._db, self._icon)
 
     def otherGuiSetup(self):
         """ Do other setup things required to get the static GUI components set up, and
@@ -144,15 +152,23 @@ class MaestroUi(Ui_MainWindow):
         w = QWidget()
         s = QFileDialog.getOpenFileName(w,"Select SCHEDULE file")[0]
         j = QFileDialog.getOpenFileName(w,"Select JOB file")[0]
-        c = QFileDialog.getOpenFileName(w,"Select CALENDAR file")[0]
+        cal = QFileDialog.getOpenFileName(w,"Select CALENDAR file")[0]
         try: self._files["SCHEDULE"]
         except AttributeError: self._files = {} # We did not initialise this dictionary before
         if s != "": self._files["SCHEDULE"] = s #Test for cancelled selection and retain current value
         if j != "": self._files["JOBS"] = j
-        if c != "": self._files["CALENDARS"] = c
-        f = open(self._iniFile,'wb')
-        pickle.dump(self._files,f)
-        self._s = Schedule(self._files, self._db)#Read in schedule and job files and create schedule object.
+        if cal != "": self._files["CALENDARS"] = cal
+        #Store values for later use
+        conn = sqlite3.connect(self._sqlite_ini_name)
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('SCHEDULE', str(s)))
+        c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('JOBS', str(j)))
+        c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('CALENDARS', str(cal)))
+        conn.commit()
+        conn.close()
+        #f = open(self._iniFile,'wb')
+        #pickle.dump(self._files,f)
+        self._s = Schedule(self._files, self._db, self._icon)#Read in schedule and job files and create schedule object.
         self.popSchedsCombo()
         self.comboBoxSched.activateWindow()
 
@@ -166,14 +182,22 @@ class MaestroUi(Ui_MainWindow):
         w = QWidget()
         dotLoc = QFileDialog.getOpenFileName(w,"Select dot executable file")[0]
         if dotLoc != "": self._files["DOT"] = dotLoc #Allow cancellation and retain current value
-        f = open(self._iniFile,'wb')
-        pickle.dump(self._files,f)
+        # Store values for later use
+        conn = sqlite3.connect(self._sqlite_ini_name)
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('DOT', str(dotLoc)))
+        conn.commit()
+        conn.close()
+        #f = open(self._iniFile,'wb')
+        #pickle.dump(self._files,f)
         return dotLoc
 
     def fileInfo(self):
         """Output a message box with the fully qualified paths and names of the  current
         Maestro schedule and job files that are selected"""
         msg = QMessageBox()
+        msg.setWindowIcon(QIcon(self._icon))
+        msg.setWindowTitle('Maestro')
         msg.setText("File Locations........")
         txtList = []
         try:
@@ -186,7 +210,7 @@ class MaestroUi(Ui_MainWindow):
 
     def popSchedsCombo(self):
         """ Populate the schedule combo box with all schedule names sorted alphabetically """
-        display = [k for k in self._s.getAllSchedIds()]
+        display = [k for k in self._s.getAllSchedIds(self._db)]
         display.sort()
         self.comboBoxSched.addItems(display)
 
@@ -205,7 +229,7 @@ class MaestroUi(Ui_MainWindow):
         """
         name = self.comboBoxSched.itemText(index)
         try:
-            self.scheduleNameLabel.setText(self._s.getSchedName(name))
+            self.scheduleNameLabel.setText(self._s.getSchedName(name, self._db))
             self.statusbar.showMessage('')
         except KeyError:
             self.statusbar.showMessage('Schedule ' + name + ' does not exist.')
@@ -216,24 +240,24 @@ class MaestroUi(Ui_MainWindow):
 
     def populateJobs(self,schedNm):
         """Populate jobs from selected schedule"""
-        jobs = self._s.getScheduleJobs(schedNm)
-        jobDetails = [(j,self._s.getJobName(j),self._s.getJobScript(j)) for j in jobs]
+        jobs = self._s.getScheduleJobs(schedNm, self._db)
+        jobDetails = [(j,self._s.getJobName(j, self._db),self._s.getJobScript(j, self._db)) for j in jobs]
         tModel = JobTableModel(jobDetails,self) #Instantiate this project's table model class with data
         self.tableView.setModel(tModel) # Set the table model of the table view Component on the main Ui
         self.tableView.resizeColumnsToContents()
 
     def populatePrecScheds(self,schedNm):
         """Populate future schedules from selected schedule"""
-        prec = self._s.getFollowingSchedules(schedNm)
-        preceding = [(sch,self._s.getSchedName(sch)) for sch in prec ]
+        prec = self._s.getFollowingSchedules(schedNm, self._db)
+        preceding = [(sch,self._s.getSchedName(sch, self._db)) for sch in prec ]
         tModel = ScheduleTableModel(preceding,self) #Instantiate this project's table model class with data
         self.tableView.setModel(tModel) # Set the table model of the table view Component on the main Ui
         self.tableView.resizeColumnsToContents()
 
     def populateFollowingScheds(self, schedNm):
         """Populate previous schedules from selected schedule"""
-        prev = self._s.getPreviousSchedules(schedNm)
-        preceding = [(sch,self._s.getSchedName(sch)) for sch in prev ]
+        prev = self._s.getPreviousSchedules(schedNm, self._db)
+        preceding = [(sch,self._s.getSchedName(sch, self._db)) for sch in prev ]
         tModel = ScheduleTableModel(preceding,self) #Instantiate this project's table model class with data
         self.tableView.setModel(tModel) # Set the table model of the table view Component on the main Ui
         self.tableView.resizeColumnsToContents()
@@ -242,7 +266,7 @@ class MaestroUi(Ui_MainWindow):
         """
         Method to pop up a dialog and display a list of full text of schedule
         """
-        text = self._s.getFullSchedule(self.comboBoxSched.currentText())
+        text = self._s.getFullSchedule(self.comboBoxSched.currentText(), self._db)
         tDisplay = TextDisplay(self,text)
 
     def showFullCalendar(self):
@@ -295,13 +319,15 @@ class MaestroUi(Ui_MainWindow):
             if index.column() == 0: # We selected the first column which contains identifiers
                 selection = index.data()
                 if self.radioButtonJobs.isChecked():
-                    text = self._s.getFullJob(selection)
+                    text = self._s.getFullJob(selection, self._db)
                     tDisplay = TextDisplay(self,text) # Pop up dialog with full job
                 else:  # Change selected schedule to the one clicked
                     self.comboBoxSched.setCurrentText(selection)
 
     def exportDirectConnections(self):
         msg = QMessageBox()
+        msg.setWindowIcon(QIcon(self._icon))
+        msg.setWindowTitle('Maestro')
         msg.setText("Show control files and resources needed?")
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -310,10 +336,12 @@ class MaestroUi(Ui_MainWindow):
         if rc == QMessageBox.Yes: showFileDeps = True
         else : showFileDeps = False
 
-        self.draw(self._s.getGraphvizPart(self.comboBoxSched.currentText(),showFileDeps))
+        self.draw(self._s.getGraphvizPart(self.comboBoxSched.currentText(), showFileDeps, self._db))
 
     def exportFullConnections(self):
         msg = QMessageBox()
+        msg.setWindowIcon(QIcon(self._icon))
+        msg.setWindowTitle('Maestro')
         msg.setText("Show control files  and resources needed?")
         msg.setIcon(QMessageBox.Question)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
@@ -322,7 +350,7 @@ class MaestroUi(Ui_MainWindow):
         if rc == QMessageBox.Yes: showFileDeps = True
         else : showFileDeps = False
 
-        self.draw(self._s.findAllConnected(self.comboBoxSched.currentText(),showFileDeps))
+        self.draw(self._s.getAllConnected(self.comboBoxSched.currentText(), showFileDeps, self._db))
 
     def draw(self, dependencies):
         """
@@ -352,6 +380,8 @@ class MaestroUi(Ui_MainWindow):
             print ("OSError error Handling.......")
             print("Returncode = {0} meaning '{1}' file = {2}".format(e.errno, e.strerror, e.filename))
             msg = QMessageBox()
+            msg.setWindowIcon(QIcon(self._icon))
+            msg.setWindowTitle('Maestro')
             msg.setText("Error")
             msg.setIcon(QMessageBox.Critical)
             msg.setInformativeText("Please check dot file location is correctly specified. New map cannot be drawn.")
@@ -360,14 +390,14 @@ class MaestroUi(Ui_MainWindow):
             print ("ValueError error Handling.......")
         #File to be read for display has been placed above in current working directory
         #Must pass fully qualified filename of graphviz svg file
-        SVGDisplay(self,self._graphvizSvgFile,self._s)
+        SVGDisplay(self,self._graphvizSvgFile, self._s, self._db)
 
     def findText(self):
         """
         Retrieve text entered from search text bar on screen and look for it
         across jobs and schedules. Output results to a popup window.
         """
-        results = self._s.findtext(self.lineEditFind.text())
+        results = self._s.findtext(self.lineEditFind.text(), self._db)
         tDisplay = TextDisplay(self,results)
 
 if __name__ == '__main__':
