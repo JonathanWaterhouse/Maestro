@@ -17,6 +17,7 @@ class SVGDisplay(Ui_Dialog):
         """
         self._sched = fullSched
         self._sqlite_db = sqlite_db
+        self._parent_dialog = parent
         dlg = QtWidgets.QDialog()
         self.setupUi(dlg)
         imageUrl = QtCore.QUrl.fromLocalFile(svgFile) # Fully qualified filename
@@ -32,18 +33,21 @@ class SVGDisplay(Ui_Dialog):
         self.webView.setZoomFactor(self.horizontalSlider.sliderPosition()/100)
 
     def showDetails(self):
-        #msg = QMessageBox()
-        try: name = self._sched.getSchedName(self.webView.selectedText(), self._sqlite_db)
+        sched = self.webView.selectedText()
+        try: name = self._sched.getSchedName(sched, self._sqlite_db)
         except KeyError: return
-        #msg.setText(name)
-        #msg.setIcon(QMessageBox.Information)
-        #msg.setStandardButtons(QMessageBox.Close)
-        #msg.setDefaultButton(QMessageBox.Close)
-        #rc = msg.exec()
+        #Display label with description
         label = QLabel('<font style="color: grey; background-color: yellow"><p>' + name + '</p></font>')
         label.move(QCursor.pos().x()+30,QCursor.pos().y()+20)
         label.setWindowFlags(QtCore.Qt.SplashScreen)
         label.show()
         QTimer.singleShot(10000,label.destroy)
-        #label.exec()
+        #set schedule selected in main parent dialog to be that selected in the graph display
+        try:
+            self._parent_dialog.comboBoxSched.setCurrentText(sched) #Change display of combo box
+            i = self._parent_dialog.findIndex(sched) # Where in selection combo list
+            self._parent_dialog.comboBoxSched.setCurrentIndex(i)
+            self._parent_dialog.tablePopulate(i) #Populate main display
+        except TypeError : pass
+
 
