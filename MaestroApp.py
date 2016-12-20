@@ -1,14 +1,14 @@
 import os
-import subprocess
-import pickle
-
 import sqlite3
-from PyQt5.QtWidgets import *
+import subprocess
+
 from MainUI import Ui_MainWindow
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import *
+from SVGDisplay import *
 from Schedule import Schedule
 from TableModels import *
 from TextDisplay import *
-from SVGDisplay import *
 
 __author__ = 'Jonathan Waterhouse'
 
@@ -31,16 +31,17 @@ class MaestroUi(Ui_MainWindow):
         #Setup main window
         #QMainWindow.__init__(self)
         self.setupUi(MainWindow)
+        self.fileSchedule.setText("Read New Runbook Files")
         self.otherGuiSetup()
         #Setup some internally required file locations
         dataDir = self.getDataDir()
         dataDir = self.getDataDir() + os.sep
-        self._iniFile = dataDir + "Maestro.ini"
         self._sqlite_ini_name = 'ini.db'
         self._graphvizTxtFile = dataDir + "Graphviz.txt"
         self._graphvizSvgFile = dataDir + "Graphviz.svg"
         self._db = dataDir + 'schedule.db'
         self._icon = 'Monitor_Screen_32xSM.png'
+        self._s = Schedule()
         #Populate GUI with data
         try:
             self.getData()
@@ -67,54 +68,28 @@ class MaestroUi(Ui_MainWindow):
 
     def getData(self):
         """
-        Read the ini database containing the schedule and job file locations. From those
-        values try to read schedule and job files. At any failure output a message with
-        corrective actions to take.
+        Check schedule database exists. This is done when this class is initialised.
+        :return: None
         """
+        #Setup an ini.db file for various stored values if it does not exist
         conn = sqlite3.connect(self._sqlite_ini_name)
         c = conn.cursor()
         # Settings database
         c.execute("CREATE TABLE IF NOT EXISTS SETTINGS (KEY TEXT PRIMARY KEY, VALUE TEXT)")
-        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='SCHEDULE'")
-        s = c.fetchone()
-        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='JOBS'")
-        j = c.fetchone()
-        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='CALENDARS'")
-        cal = c.fetchone()
-        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='DOT'")
-        dot = c.fetchone()
+        conn.commit()
         conn.close()
-        db_err = False
-        if (s is None or j is None or cal is None): db_err = True
-        elif (s[0] == '' or j[0] == '' or cal[0] == ''): db_err = True
-        if db_err:
-            self._inputFilesExist = False
+        #Read schedule text files into database table if such table does not exist
+        if not os.path.exists(self._db):
             msg = QMessageBox()
             msg.setWindowIcon(QIcon(self._icon))
             msg.setWindowTitle('Maestro')
-            msg.setText("Warning")
-            msg.setInformativeText("Runbook file locations not yet selected. Please use Options menu")
-            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Error")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setInformativeText("Schedule files not yet loaded. Please select them.")
             msg.exec()
-            raise (KeyError)
+
+            self.getSchedFileNames()  # prompt for new files names and load database
             return
-        elif not os.path.exists(s[0]) or not os.path.exists(j[0]) or not os.path.exists(cal[0]):
-            #Files specified not found
-                self._inputFilesExist = False
-                msg = QMessageBox()
-                msg.setWindowIcon(QIcon(self._icon))
-                msg.setWindowTitle('Maestro')
-                msg.setText("Error")
-                msg.setIcon(QMessageBox.Critical)
-                msg.setInformativeText("Schedule, Job and Calendar files specified do not exist.")
-                msg.exec()
-                raise(KeyError)
-                return
-        else:
-            # Read in schedule and job files and create schedule object.
-            self._files = {'SCHEDULE': s[0], 'JOBS': j[0], 'CALENDARS': cal[0]}
-            self._files['DOT'] = dot[0]
-            self._s = Schedule(self._files, self._db, self._icon)
 
     def otherGuiSetup(self):
         """ Do other setup things required to get the static GUI components set up, and
@@ -153,12 +128,21 @@ class MaestroUi(Ui_MainWindow):
         s = QFileDialog.getOpenFileName(w,"Select SCHEDULE file")[0]
         j = QFileDialog.getOpenFileName(w,"Select JOB file")[0]
         cal = QFileDialog.getOpenFileName(w,"Select CALENDAR file")[0]
-        try: self._files["SCHEDULE"]
-        except AttributeError: self._files = {} # We did not initialise this dictionary before
-        if s != "": self._files["SCHEDULE"] = s #Test for cancelled selection and retain current value
-        if j != "": self._files["JOBS"] = j
-        if cal != "": self._files["CALENDARS"] = cal
-        #Store values for later use
+        #Check Files actually exist - will be an issue in case of cancellation first time in
+        msg_text = ''
+        if not os.path.exists(s): msg_text = 'SCHEDULE file ' + s + ' does not exist.'
+        if not os.path.exists(s): msg_text = 'JOBS file ' + j + ' does not exist.'
+        if not os.path.exists(cal): msg_text = 'CALENDAR file ' + cal + ' does not exist.'
+        if msg_text != '': #ie. no file chosen in one of the 3 cases
+            msg = QMessageBox()
+            msg.setWindowIcon(QIcon(self._icon))
+            msg.setWindowTitle('Maestro')
+            msg.setText(msg_text)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec()
+            return
+        #Store values for later use if we got valid file names
         conn = sqlite3.connect(self._sqlite_ini_name)
         c = conn.cursor()
         c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('SCHEDULE', str(s)))
@@ -166,9 +150,9 @@ class MaestroUi(Ui_MainWindow):
         c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('CALENDARS', str(cal)))
         conn.commit()
         conn.close()
-        #f = open(self._iniFile,'wb')
-        #pickle.dump(self._files,f)
-        self._s = Schedule(self._files, self._db, self._icon)#Read in schedule and job files and create schedule object.
+        self.statusbar.showMessage('Populating database........please wait.')
+        self._s.read_runbook_files(self._sqlite_ini_name, self._db, self._icon)#Read in schedule and job files to pop. schedule object.
+        self.statusbar.showMessage('Database population complete.',1000)
         self.popSchedsCombo()
         self.comboBoxSched.activateWindow()
 
@@ -180,28 +164,37 @@ class MaestroUi(Ui_MainWindow):
         File specification is performed via the File menu on the gui.
         """
         w = QWidget()
-        dotLoc = QFileDialog.getOpenFileName(w,"Select dot executable file")[0]
-        if dotLoc != "": self._files["DOT"] = dotLoc #Allow cancellation and retain current value
-        # Store values for later use
-        conn = sqlite3.connect(self._sqlite_ini_name)
-        c = conn.cursor()
-        c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('DOT', str(dotLoc)))
-        conn.commit()
-        conn.close()
-        #f = open(self._iniFile,'wb')
-        #pickle.dump(self._files,f)
+        dotLoc = QFileDialog.getOpenFileName(w,"SELECT DOT EXECUTABLE FILE")[0]
+        if dotLoc != "":  #Allow cancellation and retain current value
+            # Store values for later use
+            conn = sqlite3.connect(self._sqlite_ini_name)
+            c = conn.cursor()
+            c.execute("INSERT OR REPLACE INTO SETTINGS (KEY, VALUE) VALUES (?,?)", ('DOT', str(dotLoc)))
+            conn.commit()
+            conn.close()
         return dotLoc
 
     def fileInfo(self):
         """Output a message box with the fully qualified paths and names of the  current
         Maestro schedule and job files that are selected"""
+        files = {}
+        conn = sqlite3.connect(self._sqlite_ini_name)         # Settings database
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='DOT'")
+        files['DOT'] = c.fetchone()[0]
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='SCHEDULE'")
+        files['SCHEDULE'] = c.fetchone()[0]
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='JOBS'")
+        files['JOBS'] = c.fetchone()[0]
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='CALENDARS'")
+        files['CALENDARS'] = c.fetchone()[0]
         msg = QMessageBox()
         msg.setWindowIcon(QIcon(self._icon))
         msg.setWindowTitle('Maestro')
         msg.setText("File Locations........")
         txtList = []
         try:
-            for k, v in self._files.items(): txtList.append(k + ": " + v + "\n")
+            for k, v in files.items(): txtList.append(k + ": " + v + "\n")
             txt = "\n".join(txtList)
         except AttributeError: txt = "No initialisations yet performed"
         msg.setInformativeText(txt)
@@ -363,10 +356,17 @@ class MaestroUi(Ui_MainWindow):
             f.write(line+'\n')
             data.append(line+'\n')
         f.close()
-        try:
-            dotLoc = self._files["DOT"]
-        except KeyError:
-            dotLoc = self.setDotLoc()
+        conn = sqlite3.connect(self._sqlite_ini_name)
+        c = conn.cursor()
+        # Settings database
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='DOT'")
+        returnObject = c.fetchone()
+        #Handle invalid values by asking user to choos correct location
+        if returnObject: #i.e. we got something back
+            dotLoc = returnObject[0]
+        else : dotLoc = self.setDotLoc()
+        if dotLoc == '': dotLoc = self.setDotLoc()
+        #Invoke dot.exe
         try:
             subprocess.call([dotLoc,'-Tsvg', self._graphvizTxtFile, '-o',
                          self._graphvizSvgFile], stderr = None, shell=False)

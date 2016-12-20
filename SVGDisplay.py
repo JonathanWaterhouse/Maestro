@@ -4,7 +4,7 @@ __author__ = 'user'
 from PyQt5 import QtCore, QtWidgets
 from SVGView import Ui_Dialog
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QMessageBox, QLabel
+from PyQt5.QtWidgets import QLabel
 
 class SVGDisplay(Ui_Dialog):
     """
@@ -33,6 +33,13 @@ class SVGDisplay(Ui_Dialog):
         self.webView.setZoomFactor(self.horizontalSlider.sliderPosition()/100)
 
     def showDetails(self):
+        """
+        This method is invoked when the text on the SVG schedule is selected. Firstly
+        the name of the schedule is read from the database, secondly a label is displayed
+        with the text name and thirdly the schedule in the main GUI is updated to the
+        chosen one from the displayed SVG file and the associated jobs displayed.
+        :return: None
+        """
         sched = self.webView.selectedText()
         try: name = self._sched.getSchedName(sched, self._sqlite_db)
         except KeyError: return
@@ -44,10 +51,12 @@ class SVGDisplay(Ui_Dialog):
         QTimer.singleShot(10000,label.destroy)
         #set schedule selected in main parent dialog to be that selected in the graph display
         try:
-            self._parent_dialog.comboBoxSched.setCurrentText(sched) #Change display of combo box
-            i = self._parent_dialog.findIndex(sched) # Where in selection combo list
-            self._parent_dialog.comboBoxSched.setCurrentIndex(i)
-            self._parent_dialog.tablePopulate(i) #Populate main display
+            if sched != '':
+                self._parent_dialog.comboBoxSched.setCurrentText(sched) #Change display of combo box
+                i = self._parent_dialog.findIndex(sched) # Where in selection combo list
+                self._parent_dialog.comboBoxSched.setCurrentIndex(i)
+                self._parent_dialog.comboBoxSched.currentIndexChanged(i)
+                self._parent_dialog.tablePopulate(i) #Populate main display
         except TypeError : pass
 
 

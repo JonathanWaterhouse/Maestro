@@ -1,5 +1,5 @@
-from distutils.core import setup
 import sys
+
 from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
@@ -14,7 +14,7 @@ if sys.platform == "win32":
     base = "Win32GUI"
     
 setup(name='Maestro',
-      version='1.20',
+      version='1.21',
       description='Maestro Schedule Mapper',
 	  options = {"build_exe": { 'packages' : packages, 'include_files': include_files}},
       executables = [Executable("MaestroApp.py", base=base)]

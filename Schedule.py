@@ -1,14 +1,11 @@
-from collections import OrderedDict
-import os
 import sqlite3
+from collections import OrderedDict
 
-from PyQt5.QtGui import QIcon
 from typing import List, Set
 
-from PyQt5.QtWidgets import QMessageBox
-
 __author__ = 'Jonathan Waterhouse'
-import re
+
+
 class Schedule():
     """
     Read and store the schedule and jobs from external text files provided from runbook
@@ -21,23 +18,22 @@ class Schedule():
         "CONTROL-FILE" is an attempt to getthe control file the job depends on
         "ALL is a list of the complete job
     """
-    def __init__(self,sourceFiles, maestro_db, window_icon):
+    #def __init__(self,sourceFiles, maestro_db, window_icon):
+    def read_runbook_files(self, ini_file, maestro_db, window_icon):
         """
         This code embodies the rules required to parse the schedule and job files and store as an internal object
         """
+        #File locations
+        sourceFiles = {}
+        conn = sqlite3.connect(ini_file)         # Settings database
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='SCHEDULE'")
+        sourceFiles['SCHEDULE'] = c.fetchone()[0]
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='JOBS'")
+        sourceFiles['JOBS'] = c.fetchone()[0]
+        c.execute("SELECT DISTINCT VALUE FROM SETTINGS WHERE KEY ='CALENDARS'")
+        sourceFiles['CALENDARS'] = c.fetchone()[0]
         # initialisations required for schedule file processing
-        self._icon = window_icon
-        msg = QMessageBox()
-        msg.setWindowIcon(QIcon(self._icon))
-        msg.setWindowTitle('Maestro')
-        msg.setText("Refresh SQLite maestro database?\nHint: You only need to do it if you selected new Maestro files.")
-        msg.setIcon(QMessageBox.Question)
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        msg.setDefaultButton(QMessageBox.No)
-        rc = msg.exec()
-        #We don't want to refresh any data in internal database (presumably maestro schedule files did not change)
-        if rc == QMessageBox.No: return
-
         all, follows,needs,opens,comments,jobs = [],[],[],[],[],[]
         schedNum = 0
         thisSched, thisName = '',''
@@ -157,8 +153,8 @@ class Schedule():
                     jobs[prevJob] = cols
                     all = []
                     thisDesc ,thisScript, thisCtl = "","",""
-                    prevJob = thisJob;
-            all.append(line);
+                    prevJob = thisJob
+            all.append(line)
             if line.find("DESCRIPTION") == 1: thisDesc = line[line.find("DESCRIPTION")+11:len(line)-1]
             if line.find("SCRIPTNAME") == 1: thisScript = line[line.find("SCRIPTNAME")+10:len(line)-1]
         jobFile.close()
@@ -213,9 +209,10 @@ class Schedule():
             conn = sqlite3.connect(maestro_db)
             c = conn.cursor()
             c.execute("SELECT DISTINCT NAME FROM SCHEDULE WHERE SCHEDULE=?",(schedNumber,))
-            name =  c.fetchone()
+            nameObject =  c.fetchone()
             conn.close()
-            return name[0]
+            if nameObject: return nameObject[0]
+            else: return ''
         else: return ''
 
     def getScheduleJobs(self, schedNumber: str, maestro_db: str) -> List:
@@ -233,7 +230,7 @@ class Schedule():
             conn.close()
             return l
         else:
-            return ''
+            return []
 
     def getPreviousSchedules(self, schedNumber: str, maestro_db: str) -> List:
         """
@@ -250,7 +247,7 @@ class Schedule():
             conn.close()
             return l
         else:
-            return ''
+            return []
 
     def getFollowingSchedules(self, schedNumber: str, maestro_db: str) -> List:
         """
@@ -267,7 +264,7 @@ class Schedule():
             conn.close()
             return l
         else:
-            return ''
+            return []
 
     def getFullSchedule(self, schedNumber: str, maestro_db: str) -> List:
         """
@@ -284,12 +281,12 @@ class Schedule():
             conn.close()
             return l
         else:
-            return ''
+            return []
 
     def getFullJob(self, jobNumber: str, maestro_db: str) -> List:
         """
         Find full job for a given input job number. Return a list.
-        @param schedNumber: input schedule number
+        @param jobNumber: input job number
         @return: List of all job lines
         """
         l = []
@@ -301,7 +298,7 @@ class Schedule():
             conn.close()
             return l
         else:
-            return ''
+            return []
 
     def getJobName(self,jobNumber: str, maestro_db: str) -> str:
         """
@@ -381,7 +378,7 @@ class Schedule():
     def getAllConnected(self, start_key: str, showFileDeps: bool, maestro_db: str) -> List:
         """
         Find all nodes connected to the starting node
-        @param start: initial schedule node
+        @param start_key: initial schedule node
         @param showFileDeps Boolean true if we want to show control files etc.
         @return List object of lines for Graphviz dot program:
         """
