@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Locate Schedule Files</title>
+    <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+    <style>
+        table {
+        font-family: Times New Roman, Serif;
+        border-collapse: collapse;
+        max-width: 1000px;
+        }
+        td, th {
+            border: 3px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        td.right-align {
+            border: 3px solid #dddddd;
+            text-align: right;
+            padding: 8px
+        }
+    </style>
+</head>
+<body>
+<form action="/store_schedule_data" method="post" enctype="multipart/form-data">
+    <table>
+        <th colspan="2"><b>Choose local schedule files for upload to server:</b></th>
+        <tr><td> <b id="SCHEDULE  :  ">Choose Schedules File</b></td>
+        <td><input type="file" multiple size="1" id="sched_file_chooser" size="300" name="sched_file"
+               onchange="displayFile('SCHEDULE  :  ','sched_file_chooser')" accept=".txt">
+        </td></tr>
+        <tr><td> <b id="JOBS  :  ">Choose Jobs File</b></td>
+        <td><input type="file" multiple size="1" id="job_file_chooser" size="300" name="job_file"
+               onchange="displayFile('JOBS  :  ','job_file_chooser')" accept=".txt">
+        </td></tr>
+        <tr><td><b id="CALENDARS  :  ">Choose Calendars File</b></td>
+        <td><input type="file" multiple size="1" id="cal_file_chooser" size="300" name="cal_file"
+               onchange="displayFile('CALENDARS  :  ','cal_file_chooser')" accept=".txt">
+        </td></tr>
+        <tr><td colspan = 2 class="right-align"><input type="submit" value="Submit files"></td></tr>
+        <p></p>
+    </table>
+</form>
+<script>
+function displayFile(type, id){
+    var x = document.getElementById(id);
+    var txt = "";
+    if ('files' in x){
+        if (x.files.length == 0) {
+            txt = "Select one or more files.";
+        } else {
+            for (var i = 0; i < x.files.length; i++) {
+                //txt += "<br><strong>" + (i+1) + ". file</strong><br>";
+                var file = x.files[i];
+                if ('name' in file) {
+                    txt += type + file.name + "<br>";
+                }
+            }
+        }
+    }
+    document.getElementById(type).innerHTML = txt;
+}
+</script>
+</body>
+</html>

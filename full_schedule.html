@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Full Schedule</title>
+    <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+</head>
+<body>
+    <table>
+        %if len(result_lines) == 0:
+        <tr><td><b>No results found!</b></td></tr>
+        %else:
+            %for row in result_lines:
+                <tr><td>{{row}}</td></tr>
+            %end
+        %end
+    </table>
+</body>
+</html>

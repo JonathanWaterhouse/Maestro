@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Schedule</title>
+        <link rel="stylesheet" type="text/css" href="maestro_style.css">
+        <script type="text/javascript" src="display_schedule.js"></script>
+        <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+    </head>
+    <body>
+    %#template to generate a HTML table from a list of tuples (or list of lists, or tuple of tuples or ...)
+        <form method="get">
+            <ul>
+              <li class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn">Actions</a>
+                <div class="dropdown-content">
+                    <a href="/show_full_schedule" target="_blank">Show Full Schedule</a>
+                    <a href="/show_calendars" target="_blank">Show Calendars</a>
+                    <a href="/dependency_map"
+                       target="_blank">Dependency map</a>
+                    <a href="/connection_map" target="_blank">Connection map</a>
+                    <a href="/show_control_files" target="_blank">Ctrl File dependencies</a>
+                    <a href="/show_resources" target="_blank">Resource dependencies</a>
+                </div>
+              </li>
+              <li class="dropdown">
+                <a href="javascript:void(0)" class="dropbtn">Properties</a>
+                <div class="dropdown-content">
+                    <a href="/upload_schedule_files" target="_blank">Read new "runbook" files</a>
+                    <a href="/show_file_locs" target="_blank">Show file locations</a>
+                </div>
+              </li>
+            </ul>
+        </form>
+        <p></p>
+        <form action="/search" method="get" id="search_box" onchange="search()">
+            %#text box for search entry
+            <p>Enter Search Text: <input type="text" name="search"></p>
+        </form>
+        <form action="/display" method="get" id="main_screen">
+            <p>
+            %#Combo box of schedule names
+            <p></p>Schedule Chosen:   <select name="schedule" value="schedule" id="schedule_combo" onchange="submitMainForm()">
+            %for row in schedules:
+              %if row == name:
+                <option value={{row}} selected="selected" >{{row}}</option>
+              %else:
+                <option value={{row}}>{{row}}</option>
+              %end
+            %end
+            </select>
+            <p></p>
+            %#Select if we want to display Jobs or linked schedules
+            <!-- Below is a prety cludgy way to persist radio button state -->
+            %if r_button_selected == 'Jobs':
+                <input type="radio" name="display_type" value="Jobs" onchange="submitMainForm()" checked>Jobs</input>
+                <input type="radio" name="display_type" value="Precedes" onchange="submitMainForm()">Precedes</input>
+                <input type="radio" name="display_type" value="Follows" onchange="submitMainForm()">Follows</input>
+            %elif r_button_selected == 'Precedes':
+                <input type="radio" name="display_type" value="Jobs" onchange="submitMainForm()">Jobs</input>
+                <input type="radio" name="display_type" value="Precedes" onchange="submitMainForm()" checked>Precedes</input>
+                <input type="radio" name="display_type" value="Follows" onchange="submitMainForm()">Follows</input>
+            %elif r_button_selected == 'Follows':
+                <input type="radio" name="display_type" value="Jobs" onchange="submitMainForm()">Jobs</input>
+                <input type="radio" name="display_type" value="Precedes" onchange="submitMainForm()">Precedes</input>
+                <input type="radio" name="display_type" value="Follows" onchange="submitMainForm()" checked>Follows</input>
+            %end
+            <p>
+            %# Schedule id and text
+            <b>Schedule  {{name}} : "{{text}}"</b>
+            <p>
+            %# Table to display Job details
+            <table>
+            %for el in col_names:
+                <th>{{el}}</th>
+            %end
+            %i = 0
+            %for row in display_lines:
+              %j = 0
+              <tr>
+              %for col in row:
+                %if j == 0:
+                  %id = "key_" + repr(i) + repr(j)
+                  %func = "getJobId(" +  repr(i) + "," + repr(j) + ")"
+                  %#This is all about getting first column active so we can lookup based on its value
+                  <td id={{id}} onclick={{func}}>{{col}}</td>
+                %else:
+                  <td>{{col}}</td>
+                %end
+                  %j += 1
+              %end
+              </tr>
+                %i += 1
+            %end
+            </table>
+        </form>
+    <form action="/display_jobs" method="get" id="hidden_job">
+        <input type="hidden" name="job" id="hidden_job_name">
+    </form>
+</body>
+</html>

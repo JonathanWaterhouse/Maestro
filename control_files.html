@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resource List Selection</title>
+    <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+</head>
+<body>
+    <form action="/show_control_file_deps" method="get">
+        <p>
+        %#Combo box of resource names
+        <select name="resource" value="resource">
+        %for row in result_lines:
+            <option value={{row}}>{{row}}</option>
+        %end
+        </select>
+        %#Button to submit control file
+        <input type="submit" value="Display">
+        <p></p>
+    </form>
+</body>
+</html>

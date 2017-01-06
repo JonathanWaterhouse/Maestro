@@ -151,7 +151,7 @@ class MaestroUi(Ui_MainWindow):
         conn.commit()
         conn.close()
         self.statusbar.showMessage('Populating database........please wait.')
-        self._s.read_runbook_files(self._sqlite_ini_name, self._db, self._icon)#Read in schedule and job files to pop. schedule object.
+        self._s.read_runbook_files(self._sqlite_ini_name, self._db)#Read in schedule and job files to pop. schedule object.
         self.statusbar.showMessage('Database population complete.',1000)
         self.popSchedsCombo()
         self.comboBoxSched.activateWindow()
@@ -399,7 +399,7 @@ class MaestroUi(Ui_MainWindow):
         """
         results = self._s.findtext(self.lineEditFind.text(), self._db)
         tDisplay = TextDisplay(self,results)
-
+"""
 if __name__ == '__main__':
     import sys
     app = QApplication(sys.argv)
@@ -410,4 +410,4 @@ if __name__ == '__main__':
     ui.tableView.installEventFilter(kpe) #TODO Understand why this code needs to be outside of the main class
     MainWindow.show()
     sys.exit(app.exec_())
-
+"""

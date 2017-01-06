@@ -19,7 +19,7 @@ class Schedule():
         "ALL is a list of the complete job
     """
     #def __init__(self,sourceFiles, maestro_db, window_icon):
-    def read_runbook_files(self, ini_file, maestro_db, window_icon):
+    def read_runbook_files(self, ini_file, maestro_db):
         """
         This code embodies the rules required to parse the schedule and job files and store as an internal object
         """
