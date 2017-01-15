@@ -15,8 +15,16 @@ function getJobId(i,j){
     }
 }
 function submitMainForm(){
+    //store cookie
+    var s = document.getElementById("schedule_combo").value
+    document.cookie = "schedule=" + s + "; path=/"
+    //submit form
     document.getElementById('main_screen').submit()
 }
 function search(){
     document.getElementById('search_box').submit()
+}
+function setCookie(){
+    var s = document.getElementById("schedule_combo").value
+    document.cookie = "schedule=" + s + "; path=/"
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Show dependencies</title>
+    <script type="text/javascript" src="http://visjs.org/dist/vis.js"></script>
+    <script type="text/javascript" src="visjs_dependency_map.js"></script>
+    <link href="http://visjs.org/dist/vis.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        #network {
+            width: 100%;
+            height: 100%;
+            border: 10px solid lightgray;
+        }
+    </style>
+</head>
+<body onload="createGraphvizFile('dependency')">
+    <form action="/display" method="get" id="hidden_schedule">
+        <input type="hidden" name="schedule" id="hidden_schedule_id">
+    </form>
+     <iframe id="dotFile" src="Graphviz.txt" onload="loadDotFile()" style="display: none;", height="900" width="900"></iframe>
+     <div id="graph" style="network"></div>
+     <script type="text/javascript">
+     </script>
+</body>
+</html>

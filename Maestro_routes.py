@@ -1,5 +1,5 @@
 import os, sqlite3, subprocess
-import sys
+import sys, json
 
 from Schedule import Schedule
 from bottle import Bottle, run, template, request, static_file
@@ -105,7 +105,7 @@ maestro = Bottle()
 
 @maestro.route('<filepath:path>')
 def server_static(filepath):
-    #Aim of this function is to serve static css files
+    #Aim of this function is to serve static css and js files
     return static_file(filepath, root=os.getcwd()+os.sep)
 
 @maestro.route('/', method='GET')
@@ -152,28 +152,57 @@ def search():
 
 @maestro.route('/show_full_schedule', method='GET')
 def show_full_schedule():
-    # Note variable schedule is GLOBAL set in /display
-    results = s.getFullSchedule(schedule,db)
-    return template('full_schedule', result_lines=results)
+    """Only purpose of this method is to display an empty form in response to menu click
+    on display_schedule.html. Method get_sched_lines will populate the form in response
+    to an AJAX call
+    """
+    return template('show_full_schedule')
+
+@maestro.route('/get_sched_lines', method="POST")
+def get_sched_lines():
+    """Return all the schedule. Invoked by AJAX call in show_full_schedule.html"""
+    request_parm = list(request.forms.keys())[0] #The schedule required from browser cookie
+    s_lines = s.getFullSchedule(request_parm, db)
+    return json.dumps(s_lines)
 
 @maestro.route('/show_calendars')
 def show_full_schedule():
     results = s.get_calendars(db)
-    return template('full_schedule', result_lines=results)
+    return template('show_calendars', result_lines=results)
 
-@maestro.route('/dependency_map')
+@maestro.route('/get_svg_data', method='POST')
 def dependency_map():
-    # Note variable schedule is GLOBAL set in /display
+    """Display dependency map from chosen schedule.
+    schedule is returned by AJAX call from server"""
+    schedule = list(request.forms.keys())[0]
     results = s.getGraphvizPart(schedule, 'Y', db)
     draw(results)
     return template('display_svg')
 
-@maestro.route('/connection_map')
+@maestro.route('/get_svg_data_full', method='POST')
 def dependency_map():
-    #Note variable schedule is GLOBAL set in /display
+    """Display connection map from chosen schedule.
+    schedule is returned by AJAX call from server"""
+    schedule = list(request.forms.keys())[0]
     results = s.getAllConnected(schedule, 'Y', db)
     draw(results)
+    return template('display_svg_full')
+
+@maestro.route('/display_svg')
+def display_svg_form():
+    """Only purpose of this method is to display an empty form in response to menu click
+    on display_schedule.html. Method dependency_map will populate the form in response
+    to an AJAX call
+    """
     return template('display_svg')
+
+@maestro.route('/display_svg_full')
+def display_svg_form():
+    """Only purpose of this method is to display an empty form in response to menu click
+    on display_schedule.html. Method dependency_map will populate the form in response
+    to an AJAX call
+    """
+    return template('display_svg_full')
 
 @maestro.route('/show_control_files')
 def show_control_files():
@@ -239,7 +268,7 @@ def show_file_locs():
     return template('show_file_locs', locations=locs)
 
 @maestro.route('/display_jobs', method='GET')
-def show_file_locs():
+def display_jobs():
     job = request.GET.job.strip()
     job_lines = s.getFullJob(job, db)
     return template('display_jobs', result_lines=job_lines)
@@ -250,6 +279,27 @@ def get_text():
     text = s.getSchedName(request_parm, db)
     return text
 
+@maestro.route("/visjs_dependency_map")
+def visjs_dependency_map():
+    """Only purpose of this method is to display an empty form in response to menu click
+    on display_schedule.html. Method dependency_map will populate the form in response
+    to an AJAX call
+    """
+    return template('visjs_dependency_map')
+
+@maestro.route("/visjs_get_map_text", method="POST")
+def visjs_get_map_text():
+    """Experimental: Try to use vis.js in browser to render the map
+    Display dependency map from chosen schedule.
+     schedule is returned by AJAX call from server"""
+    schedule = list(request.forms.keys())[0]
+    results = s.getGraphvizPart(schedule, 'Y', db)
+    f = open(graphvizTxtFile, 'w')
+    for line in results:
+        f.write(line + '\n')
+    f.close()
+    return template('visjs_dependency_map')
+
 # Initialisations
 datadir = getDataDir()  # os.getcwd() + os.sep
 db = datadir + os.sep + 'schedule.db'
@@ -258,6 +308,10 @@ graphviz_svg_file = "Graphviz.svg"
 graphvizTxtFile = datadir + os.sep + "Graphviz.txt"
 graphvizSvgFile = datadir + os.sep + graphviz_svg_file
 s = Schedule()
-schedule = ''
+#schedule -> text is a Global variable used to persist the current schedule
+#Note having such a global variable at the server is problematic since it means there can
+#only be one current schedu
+# le across all users. Need to replace with cookies on client side.
+#schedule = ''
 
 run(maestro, host='localhost', port=8080, debug=True, reloader=True)

@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Message</title>
+    <title>Calendars</title>
     <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
 </head>
 <body>
-<h1><b>{{message}}</b></h1>
+    <table>
+    %for line in result_lines:
+        <tr><td>{{line}}</td></tr>
+    %end
+    </table>
 </body>
 </html>

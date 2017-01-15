@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Full Schedule</title>
+    <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+</head>
+<body onload="getScheduleLines()">
+<table id="schedule_lines"></table>
+</body>
+<script>
+    function getScheduleLines(){
+        //Get the current schedule name from cookie
+        cookieName = "schedule" + "=";
+        var c = document.cookie;
+        var cList = c.split(";");
+        for (var i = 0; i < c.length; i++){
+            var cEntry = cList[i];
+            if (cEntry.indexOf(cookieName) == 0) {
+                var s = cEntry.substring(cookieName.length, cEntry.length);
+                break;
+            }
+        }
+        //AJAX request to browser for full schedule data
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function(){
+            if (this.readyState == 4 && this.status == 200) {
+                var sched_lines = this.responseText;
+                // layout the returned data in the document
+                var sched_l = JSON.parse(sched_lines);
+                var doc_html = ''
+                for (var i=0; i < sched_l.length; i++){
+                    doc_html = doc_html + "<tr><td>" + sched_l[i] + "</td></tr>";
+                }
+                document.getElementById("schedule_lines").innerHTML = doc_html;
+            }
+        }
+        xhr.open("POST","/get_sched_lines",false);
+        xhr.send(s);
+        }
+</script>
+</html>
