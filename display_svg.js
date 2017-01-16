@@ -1,15 +1,4 @@
 function onDisplaySVGLoad(target_page){
-    //Get the current schedule name from cookie
-    cookieName = "schedule" + "=";
-    var c = document.cookie;
-    var cList = c.split(";");
-    for (var i = 0; i < c.length; i++){
-        var cEntry = cList[i];
-        if (cEntry.indexOf(cookieName) == 0) {
-            var s = cEntry.substring(cookieName.length, cEntry.length);
-            break;
-        }
-    }
     //Request creation of SVG file on server via AJAX
     var xhr_reqst_svg = new XMLHttpRequest();
     xhr_reqst_svg.onreadystatechange = function(){
@@ -32,7 +21,7 @@ function onDisplaySVGLoad(target_page){
     }
     if (target_page == 'dependency') {xhr_reqst_svg.open("POST","/get_svg_data",false);}
     else {xhr_reqst_svg.open("POST","/get_svg_data_full",false);}
-    xhr_reqst_svg.send(s);
+    xhr_reqst_svg.send("");
 }
 
 function onSVGClick(evt){
@@ -53,5 +42,6 @@ function onSVGClick(evt){
     }
     xhr_text.open("POST","/get_text",false);
     xhr_text.send(x);
+
     }
 

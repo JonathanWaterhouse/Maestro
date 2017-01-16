@@ -161,8 +161,8 @@ def show_full_schedule():
 @maestro.route('/get_sched_lines', method="POST")
 def get_sched_lines():
     """Return all the schedule. Invoked by AJAX call in show_full_schedule.html"""
-    request_parm = list(request.forms.keys())[0] #The schedule required from browser cookie
-    s_lines = s.getFullSchedule(request_parm, db)
+    schedule = request.cookies.schedule
+    s_lines = s.getFullSchedule(schedule, db)
     return json.dumps(s_lines)
 
 @maestro.route('/show_calendars')
@@ -174,7 +174,7 @@ def show_full_schedule():
 def dependency_map():
     """Display dependency map from chosen schedule.
     schedule is returned by AJAX call from server"""
-    schedule = list(request.forms.keys())[0]
+    schedule = request.cookies.schedule
     results = s.getGraphvizPart(schedule, 'Y', db)
     draw(results)
     return template('display_svg')
@@ -183,7 +183,7 @@ def dependency_map():
 def dependency_map():
     """Display connection map from chosen schedule.
     schedule is returned by AJAX call from server"""
-    schedule = list(request.forms.keys())[0]
+    schedule = request.cookies.schedule
     results = s.getAllConnected(schedule, 'Y', db)
     draw(results)
     return template('display_svg_full')
@@ -275,8 +275,9 @@ def display_jobs():
 
 @maestro.route('/get_text', method="POST")
 def get_text():
-    request_parm = list(request.forms.keys())[0]
-    text = s.getSchedName(request_parm, db)
+    #request_parm = list(request.forms.keys())[0]
+    schedule = request.cookies.schedule
+    text = s.getSchedName(schedule, db)
     return text
 
 @maestro.route("/visjs_dependency_map")
@@ -292,7 +293,8 @@ def visjs_get_map_text():
     """Experimental: Try to use vis.js in browser to render the map
     Display dependency map from chosen schedule.
      schedule is returned by AJAX call from server"""
-    schedule = list(request.forms.keys())[0]
+    schedule = request.cookies.schedule
+    #schedule = list(request.forms.keys())[0]
     results = s.getGraphvizPart(schedule, 'Y', db)
     f = open(graphvizTxtFile, 'w')
     for line in results:

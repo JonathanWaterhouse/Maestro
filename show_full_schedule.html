@@ -10,17 +10,6 @@
 </body>
 <script>
     function getScheduleLines(){
-        //Get the current schedule name from cookie
-        cookieName = "schedule" + "=";
-        var c = document.cookie;
-        var cList = c.split(";");
-        for (var i = 0; i < c.length; i++){
-            var cEntry = cList[i];
-            if (cEntry.indexOf(cookieName) == 0) {
-                var s = cEntry.substring(cookieName.length, cEntry.length);
-                break;
-            }
-        }
         //AJAX request to browser for full schedule data
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function(){
@@ -36,7 +25,7 @@
             }
         }
         xhr.open("POST","/get_sched_lines",false);
-        xhr.send(s);
+        xhr.send("");
         }
 </script>
 </html>
