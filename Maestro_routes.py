@@ -2,7 +2,8 @@ import os, sqlite3, subprocess
 import sys, json
 
 from Schedule import Schedule
-from bottle import Bottle, run, template, request, static_file
+from bottle import Bottle, run, template, request, static_file, abort
+
 
 def getDataDir():
     """
@@ -39,29 +40,27 @@ def draw(dependencies):
     # Handle invalid values by asking user to choos correct location
     if returnObject:  # i.e. we got something back
         dotLoc = returnObject[0]
+    error_thrown = False
+    msg = ''
     try:
         subprocess.call([dotLoc, '-Tsvg', graphvizTxtFile, '-o',
                          graphvizSvgFile], stderr=None, shell=False)
         subprocess.check_call([dotLoc, '-Tsvg', graphvizTxtFile, '-o',
                                graphvizSvgFile], stderr=None, shell=False)
-        # TODO Proper user friendly error handling DELETE
     except (subprocess.CalledProcessError) as e:
         msg = "Returncode {0} command {1} output {2}".format(e.returncode, e.cmd, e.output) \
-             + "\n Please ensure that dot.exe is installed and on your path."
-        return template("application_messages", message=msg)
-        #print("CalledProcessError error Handling.......")
-        #print("Returncode {0} command {1} output {2}".format(e.returncode, e.cmd, e.output))
+             + ". Please ensure that dot.exe is installed and on your path."
+        error_thrown = True
     except OSError as e:
         msg = "Returncode = {0} meaning '{1}' file = {2}".format(e.errno, e.strerror, e.filename) \
-             + "\n Please ensure that dot.exe is installed and on your path."
-        return template("application_messages", message=msg)
-        #print("OSError error Handling.......")
-        #print("Returncode = {0} meaning '{1}' file = {2}".format(e.errno, e.strerror, e.filename))
+             + ". Please ensure that dot.exe is installed and on your path."
+        error_thrown = True
     except ValueError as e:
-        #print("ValueError error Handling.......")
         msg = "ValueError error Handling......." \
-             + "\n Please ensure that dot.exe is installed and on your path."
-        return template("application_messages", message=msg)
+             + ". Please ensure that dot.exe is installed and on your path."
+        error_thrown = True
+
+    return error_thrown, msg
 
 def get_file_info():
     """Output the fully qualified paths and names of the  current
@@ -100,6 +99,7 @@ def set_file_info(f_sched, f_job, f_cal):
     conn.commit()
     conn.close()
 
+#TODO Make this object oriented
 # Web UI handling code
 maestro = Bottle()
 
@@ -176,8 +176,10 @@ def dependency_map():
     schedule is returned by AJAX call from server"""
     schedule = request.cookies.schedule
     results = s.getGraphvizPart(schedule, 'Y', db)
-    draw(results)
-    return template('display_svg')
+    error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
+    if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
+    else: err = 'False'
+    return json.dumps({"error" : err, 'message' : msg}) #convert to JSON for easier reading in browser
 
 @maestro.route('/get_svg_data_full', method='POST')
 def dependency_map():
@@ -185,8 +187,10 @@ def dependency_map():
     schedule is returned by AJAX call from server"""
     schedule = request.cookies.schedule
     results = s.getAllConnected(schedule, 'Y', db)
-    draw(results)
-    return template('display_svg_full')
+    error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
+    if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
+    else: err = 'False'
+    return json.dumps({"error" : err, 'message' : msg}) #convert to JSON for easier reading in browser
 
 @maestro.route('/display_svg')
 def display_svg_form():
@@ -275,8 +279,11 @@ def display_jobs():
 
 @maestro.route('/get_text', method="POST")
 def get_text():
-    #request_parm = list(request.forms.keys())[0]
-    schedule = request.cookies.schedule
+    """
+    In response to a click on SVG schedule graph use schedule id to return the schedule text
+    """
+    schedule = request.cookies.graph_click_schedule
+    #schedule = request.cookies.schedule
     text = s.getSchedName(schedule, db)
     return text
 
@@ -317,3 +324,6 @@ s = Schedule()
 #schedule = ''
 
 run(maestro, host='localhost', port=8080, debug=True, reloader=True)
+
+#TODO How to send a message from the server
+#TODO How to best handle long running server requests in the browser
