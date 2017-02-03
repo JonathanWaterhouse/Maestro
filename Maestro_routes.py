@@ -8,7 +8,7 @@ from bottle import Bottle, run, template, request, static_file, abort
 def getDataDir():
     """
     This application may have a windows executable built from it using cx_Freeze in
-    which case the local directly that the script runs from assumed by python
+    which case  the local directly that the script runs from assumed by python
     will be incorrect. Here we derive the data directory. This allows the ini file
     Maestro.ini to be found and intermediate files for Graphviz
     """
@@ -174,8 +174,19 @@ def show_full_schedule():
 def dependency_map():
     """Display dependency map from chosen schedule.
     schedule is returned by AJAX call from server"""
-    schedule = request.cookies.schedule
+    schedule = request.cookies.SVGObject
     results = s.getGraphvizPart(schedule, 'Y', db)
+    error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
+    if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
+    else: err = 'False'
+    return json.dumps({"error" : err, 'message' : msg}) #convert to JSON for easier reading in browser
+
+@maestro.route('/get_ctl_file_svg_data', method='POST')
+def dependency_map():
+    """Display dependency map from chosen control file.
+    control file is returned by AJAX call from server"""
+    ctl_file = request.cookies.SVGObject
+    results = s.getControlFileDependentScheds(ctl_file, db)
     error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
     if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
     else: err = 'False'
@@ -185,7 +196,7 @@ def dependency_map():
 def dependency_map():
     """Display connection map from chosen schedule.
     schedule is returned by AJAX call from server"""
-    schedule = request.cookies.schedule
+    schedule = request.cookies.SVGObject
     results = s.getAllConnected(schedule, 'Y', db)
     error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
     if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
@@ -218,21 +229,25 @@ def show_resourcess():
     results = s.get_resources(db)
     return template('resources',result_lines=results)
 
-@maestro.route('/show_control_file_deps', method="GET")
+@maestro.route('/show_control_file_deps', method="POST")
 def show_resource_deps():
-    resource = request.GET.resource.strip()
+    #resource = request.GET.resource.strip()
+    resource = request.cookies.SVGObject
     results = s.getControlFileDependentScheds(db, resource)
-    draw(results)
-    return template('display_svg')
-    #return static_file(graphviz_svg_file, root=datadir, mimetype='image/svg+xml')
+    error_thrown , msg = draw(results) #Outputs an svg file to be picked up by javascript in the web page
+    if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
+    else: err = 'False'
+    return json.dumps({"error" : err, 'message' : msg}) #convert to JSON for easier reading in browser
 
-@maestro.route('/show_resource_deps', method="GET")
+@maestro.route('/show_resource_deps', method="POST")
 def show_resource_deps():
-    resource = request.GET.resource.strip()
+    #resource = request.GET.resource.strip()
+    resource = request.cookies.SVGObject
     results = s.get_resource_dependent_scheds(db, resource)
-    draw(results)
-    return template('display_svg')
-    #return static_file(graphviz_svg_file, root=datadir, mimetype='image/svg+xml')
+    error_thrown, msg = draw(results)
+    if error_thrown: err = 'True' #Bottle seems to have trouble returning a logical
+    else: err = 'False'
+    return json.dumps({"error" : err, 'message' : msg}) #convert to JSON for easier reading in browser
 
 @maestro.route('/upload_schedule_files', method="GET")
 def find_schedule_files():

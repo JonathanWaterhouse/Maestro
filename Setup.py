@@ -18,7 +18,7 @@ base = None
 #    base = "Win32GUI"
     
 setup(name='Maestro',
-      version='2.00',
+      version='2.12',
       description='Maestro Schedule Mapper',
 	  options = {"build_exe": { 'packages' : packages, 'include_files': include_files}},
       executables = [Executable("Maestro_routes.py", base=base)]

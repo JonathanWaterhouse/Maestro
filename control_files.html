@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Resource List Selection</title>
+    <title>Ctrl File List Selection</title>
     <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
+    <script type="text/javascript" src="display_ctl_file_svg.js"></script>
 </head>
 <body>
-    <form action="/show_control_file_deps" method="get">
+    <form onSubmit="onDisplaySVGLoad(); return false;">
         <p>
         %#Combo box of resource names
-        <select name="resource" value="resource">
+        <select name="resource" value="resource" id="combo">
         %for row in result_lines:
             <option value={{row}}>{{row}}</option>
         %end
@@ -17,6 +18,10 @@
         %#Button to submit control file
         <input type="submit" value="Display">
         <p></p>
+    </form>
+    <div id="svgContainer"></div>
+    <form action="/display" method="get" id="hidden_schedule">
+        <input type="hidden" name="schedule" id="hidden_schedule_id">
     </form>
 </body>
 </html>

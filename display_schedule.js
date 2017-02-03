@@ -24,7 +24,7 @@ function submitMainForm(){
 function search(){
     document.getElementById('search_box').submit()
 }
-function setCookie(){
+function setSVGCookie(){
     var s = document.getElementById("schedule_combo").value
-    document.cookie = "schedule=" + s + "; path=/"
+    document.cookie = "SVGObject=" + s + "; path=/"
 }
