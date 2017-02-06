@@ -99,7 +99,6 @@ def set_file_info(f_sched, f_job, f_cal):
     conn.commit()
     conn.close()
 
-#TODO Make this object oriented
 # Web UI handling code
 maestro = Bottle()
 
@@ -341,4 +340,3 @@ s = Schedule()
 run(maestro, host='localhost', port=8080, debug=True, reloader=True)
 
 #TODO How to send a message from the server
-#TODO How to best handle long running server requests in the browser
