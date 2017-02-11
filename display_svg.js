@@ -47,7 +47,7 @@ function onSVGClick(evt){
             if (conf){
                 //Submit request to display the selected schedule
                 document.getElementById('hidden_schedule_id').value = x;
-                document.cookie = "schedule=" + x +  + "; path=/"
+                document.cookie = "schedule=" + x + "; path=/"
                 document.getElementById('hidden_schedule').submit();
             }
         }
