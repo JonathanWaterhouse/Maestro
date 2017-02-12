@@ -4,14 +4,16 @@ import sys, json
 from Schedule import Schedule
 from bottle import Bottle, run, template, request, static_file
 
-#TODO How to best handle long running server requests in the browser
-#TODO visjs layout is nothing like as good as graphviz dot. Any other browser based alternatives?
+# TODO How to best handle long running server requests in the browser
+# TODO visjs layout is nothing like as good as graphviz dot. Any other browser based alternatives?
+
+
 class Maestro(Bottle):
     def __init__(self,name):
         """Run Bottle init. Initialise certain locally required variables. Set up the routes to
         allow interception of url's"""
-        super (Maestro,self).__init__()
-        #Instance variables
+        super(Maestro, self).__init__()
+        # Instance variables
         self.name = name
         datadir = self.getDataDir()  # os.getcwd() + os.sep
         self._db = datadir + os.sep + 'schedule.db'
@@ -20,7 +22,7 @@ class Maestro(Bottle):
         self._graphvizTxtFile = datadir + os.sep + "Graphviz.txt"
         self._graphvizSvgFile = datadir + os.sep + self._graphviz_svg_file
         self._s = Schedule()
-        #Routes
+        # Routes
         self.route('/', method='GET', callback=self.display)
         self.route('/display', method='GET', callback=self.display)
         self.route('<filepath:path>', callback=self.serve_static_file)
@@ -77,7 +79,7 @@ class Maestro(Bottle):
                             display_lines=[], schedules=[], col_names=cols)
 
         # Main processing if data was already loaded
-        global schedule
+        # global schedule
         schedule = request.GET.schedule.strip()
         type = request.GET.display_type.strip()
         sched_text = self._s.getSchedName(schedule, self._db)

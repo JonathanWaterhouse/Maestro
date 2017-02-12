@@ -620,11 +620,12 @@ class Schedule():
             conn = sqlite3.connect(maestro_db)
             c = conn.cursor()
             for row in c.execute("SELECT SCHEDULE, LINE FROM SCH_ALL WHERE LINE LIKE ?", ('%' + searchText + '%',)):
-                result.append(row[0] + " -> " + row[1])
+                #result.append(row[0] + " -> " + row[1])
+                result.append((row[0], row[1]))
 
             sql = 'SELECT SL.SCHEDULE, SL.JOB, J.LINE from SCH_LINES AS SL INNER JOIN JOBS_ALL AS J ON J.JOB = SL.JOB WHERE LINE LIKE ?'
             for row in c.execute(sql, ('%' + searchText + '%',)):
-                result.append(row[0] + " : " + row[1] + " -> " + row[2])
+                result.append((row[0], row[1] + " -> " + row[2]))
             conn.close()
             result.sort()
         else:

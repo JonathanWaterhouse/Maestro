@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,15 +6,34 @@
     <link rel="stylesheet" type="text/css" href="maestro_style.css">
     <link rel="shortcut icon" href="Monitor_Screen_32xSM.png">
 </head>
-<body>
+<body id="body">
     <table>
         %if len(result_lines) == 0:
         <tr><td><b>No results found!</b></td></tr>
         %else:
+            %i = 0
             %for row in result_lines:
-                <tr><td>{{row}}</td></tr>
+                %id = "row_"+ repr(i)
+                %func = "handleClick(" + repr(i) + ")"
+                <tr><td id={{id}} onclick={{func}}>{{row[0]}}</td><td>{{row[1]}}</td></tr>
+                %i += 1
             %end
         %end
     </table>
+    <form action="/display" method="get" id="hidden_schedule">
+        <input type="hidden" name="schedule" id="hidden_schedule_id">
+    </form>
+<script>
+    function handleClick(i) {
+        var x = document.getElementById("row_"+i).innerHTML;
+        conf = confirm("Do you want to display schedule " + x + "?");
+        if (conf){
+            //Submit request to display the selected schedule
+            document.getElementById('hidden_schedule_id').value = x;
+            document.cookie = "schedule=" + x + "; path=/"
+            document.getElementById('hidden_schedule').submit();
+        }
+    }
+</script>
 </body>
 </html>

@@ -3,8 +3,8 @@ import sys, os
 from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need fine tuning.
-#build_exe_options = {"packages": ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]}
-#packages = ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]
+# build_exe_options = {"packages": ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]}
+# packages = ["PyQt5.QtNetwork","PyQt5.QtWebKit","PyQt5.QtPrintSupport"]
 packages = ["sys"]
 include_files = []
 for f in os.listdir(os.getcwd()):
@@ -14,12 +14,12 @@ for f in os.listdir(os.getcwd()):
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
-#if sys.platform == "win32":
+# if sys.platform == "win32":
 #    base = "Win32GUI"
-    
+
 setup(name='Maestro',
-      version='2.20',
+      version='2.22',
       description='Maestro Schedule Mapper',
-	  options = {"build_exe": { 'packages' : packages, 'include_files': include_files}},
-      executables = [Executable("OOMaestro.py", base=base)]
+      options={"build_exe": {'packages': packages, 'include_files': include_files}},
+      executables=[Executable("OOMaestro.py", base=base)]
       )
