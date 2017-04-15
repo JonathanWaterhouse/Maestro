@@ -4,8 +4,8 @@ import sys, json
 from Schedule import Schedule
 from bottle import Bottle, run, template, request, static_file
 
-# TODO How to best handle long running server requests in the browser
-# TODO visjs layout is nothing like as good as graphviz dot. Any other browser based alternatives?
+#TODO: How to best handle long running server requests in the browser
+#TODO: visjs layout is nothing like as good as graphviz dot. Any other browser based alternatives?
 
 
 class Maestro(Bottle):
